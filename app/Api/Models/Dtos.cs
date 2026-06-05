@@ -35,6 +35,13 @@ public record CaptureRow(
 
 public record ImportResult(int CompaniesCreated, int PersonsAdded, int DuplicatesSkipped, List<Guid> CompanyIds);
 
+/// <summary>Company-level data captured from a LinkedIn company About page (PRD §6.1).</summary>
+public record CompanyImportRow(
+    string Name, string? Website, string? Industry, string? CompanySize,
+    string? Headquarters, string? LinkedinUrl);
+
+public record CompanyUpsertResult(int Created, int Updated, List<Guid> CompanyIds);
+
 public record StatsDto(int Total, int ReadyForList, int Target, Dictionary<string, int> ByStage);
 
 public record EnrichRequest(string? Website);

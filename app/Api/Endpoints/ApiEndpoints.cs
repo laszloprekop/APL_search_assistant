@@ -267,6 +267,46 @@ public static class ApiEndpoints
             return c is null ? Results.NotFound() : Results.Ok(await search.FindWebsiteAsync(c));
         });
 
+        // ---- company-page capture from the extension (LinkedIn About, PRD §6.1) ----
+        api.MapPost("/companies/upsert", async (AppDbContext db, List<CompanyImportRow> rows) =>
+        {
+            int created = 0, updated = 0;
+            var ids = new List<Guid>();
+            var companies = await db.Companies.ToListAsync();
+
+            foreach (var r in rows)
+            {
+                if (string.IsNullOrWhiteSpace(r.Name)) continue;
+                var name = r.Name.Trim();
+                var c = companies.FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (c is null)
+                {
+                    c = new Company { Name = name, Source = CompanySource.LinkedIn };
+                    db.Companies.Add(c);
+                    companies.Add(c);
+                    created++;
+                }
+                else updated++;
+
+                // LinkedIn's own "About" data is authoritative — fill website + size/HQ/industry.
+                if (!string.IsNullOrWhiteSpace(r.Website)) c.Website = r.Website.Trim();
+                if (!string.IsNullOrWhiteSpace(r.CompanySize)) c.EmployeeCount = r.CompanySize.Trim();
+                if (!string.IsNullOrWhiteSpace(r.Headquarters) && string.IsNullOrWhiteSpace(c.LocationKommun))
+                    c.LocationKommun = r.Headquarters.Trim();
+                if (!string.IsNullOrWhiteSpace(r.Industry))
+                {
+                    var tag = $"Industry: {r.Industry.Trim()}";
+                    if (string.IsNullOrWhiteSpace(c.Notes)) c.Notes = tag;
+                    else if (!c.Notes.Contains("Industry:")) c.Notes = $"{c.Notes}\n{tag}";
+                }
+                c.UpdatedAt = DateTimeOffset.UtcNow;
+                if (!ids.Contains(c.Id)) ids.Add(c.Id);
+            }
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new CompanyUpsertResult(created, updated, ids));
+        });
+
         // ---- stats: counter toward the ≥15 list (PRD §6.3) -------------------
         api.MapGet("/stats", async (AppDbContext db) =>
         {

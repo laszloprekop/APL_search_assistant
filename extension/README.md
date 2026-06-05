@@ -105,6 +105,20 @@ parsing, fix `parser.js` and update `test/fixtures.js`. Use `window.__aplScan()`
   **Send to APL Assistant** → `POST http://localhost:5099/api/companies/import`.
 - Optional: a company-first capture mode for allabolag result pages.
 
+## Company-page capture (authoritative website)
+Besides people-search, the extension also runs on **`linkedin.com/company/*`**. Open a
+company's LinkedIn page and an **APL · Company** panel appears (bottom-right):
+
+1. Click **Capture company** — reads the **About** data: website (unwrapping LinkedIn's
+   `…/redir/redirect?url=` tracker), industry, company size, HQ.
+2. **Send to app** → `POST /api/companies/upsert`, matched to the existing company **by name**
+   (updates it; creates it if new). The website is LinkedIn's own field, so it's authoritative —
+   more reliable than the web-search "Find website" guess, and it fills the few that search misses.
+
+> Heuristic parser: LinkedIn's company-page markup isn't pinned by a captured DOM sample yet,
+> so verify the fields before sending. If a field comes up blank/wrong, grab the page DOM and
+> we'll tighten the selectors (same as the people parser).
+
 ## Permissions
 - `storage` — to persist captures across result-page navigations.
 - `host_permissions: http://localhost:5099/*` — to send to the local app.

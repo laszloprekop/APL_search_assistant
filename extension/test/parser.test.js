@@ -69,3 +69,54 @@ test("lanFromLocation maps 'X County' and known län", () => {
   assert.equal(P.lanFromLocation("Stockholm, Sweden"), "Stockholm");
   assert.equal(P.lanFromLocation("Greater Umeå Metropolitan Area"), "");
 });
+
+// --- company About page ------------------------------------------------------
+function parseCompany(html) {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${html}</body>`);
+  return P.parseCompanyPage(dom.window.document);
+}
+
+test("unwrapRedirect extracts the real URL from a LinkedIn redirect", () => {
+  assert.equal(
+    P.unwrapRedirect("https://www.linkedin.com/redir/redirect?url=https%3A%2F%2Fwww.cossystems.com&urlhash=abc"),
+    "https://www.cossystems.com"
+  );
+  assert.equal(P.unwrapRedirect("https://www.linkedin.com/company/x/"), null);
+});
+
+test("extractWebsite prefers a redirect-wrapped external link, rooted", () => {
+  const html = `
+    <a href="/company/cos-systems/about/">About</a>
+    <a href="https://www.linkedin.com/redir/redirect?url=https%3A%2F%2Fwww.cossystems.com%2Fsweden%2F&urlhash=z">Website</a>`;
+  const dom = new JSDOM(`<!DOCTYPE html><body>${html}</body>`);
+  assert.equal(P.extractWebsite(dom.window.document), "https://www.cossystems.com");
+});
+
+test("extractWebsite falls back to a direct external link", () => {
+  const html = `<a href="/feed/">home</a><a href="https://xlent.se/about" target="_blank">site</a>`;
+  const dom = new JSDOM(`<!DOCTYPE html><body>${html}</body>`);
+  assert.equal(P.extractWebsite(dom.window.document), "https://xlent.se");
+});
+
+test("parseCompanyPage pulls name, website and About <dl> fields (en + sv labels)", () => {
+  const r = parseCompany(`
+    <h1>COS Systems</h1>
+    <a href="https://www.linkedin.com/redir/redirect?url=https%3A%2F%2Fwww.cossystems.com&urlhash=z">cossystems.com</a>
+    <dl>
+      <dt>Industry</dt><dd>Telecommunications</dd>
+      <dt>Company size</dt><dd>11-50 employees</dd>
+      <dt>Headquarters</dt><dd>Umeå, Västerbotten</dd>
+    </dl>`);
+  assert.equal(r.name, "COS Systems");
+  assert.equal(r.website, "https://www.cossystems.com");
+  assert.equal(r.industry, "Telecommunications");
+  assert.equal(r.companySize, "11-50 employees");
+  assert.equal(r.headquarters, "Umeå, Västerbotten");
+});
+
+test("parseCompanyPage tolerates a missing website / About section", () => {
+  const r = parseCompany(`<h1>Some AB</h1>`);
+  assert.equal(r.name, "Some AB");
+  assert.equal(r.website, null);
+  assert.equal(r.industry, null);
+});

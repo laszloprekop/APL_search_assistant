@@ -10,6 +10,11 @@
       "matches": ["https://www.linkedin.com/search/results/people/*"],
       "js": ["parser.js", "content.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.linkedin.com/company/*"],
+      "js": ["parser.js", "company.js"],
+      "run_at": "document_idle"
     }
   ]
 }

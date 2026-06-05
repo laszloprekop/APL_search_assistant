@@ -122,9 +122,94 @@
     return [...d.querySelectorAll('[role="listitem"]')].map(parseCard).filter(Boolean);
   }
 
+  // ---- LinkedIn COMPANY PAGE (About) parsing --------------------------------
+
+  // LinkedIn wraps external links: https://www.linkedin.com/redir/redirect?url=<ENC>&urlhash=..
+  function unwrapRedirect(href) {
+    if (!href) return null;
+    try {
+      const u = new URL(href, "https://www.linkedin.com");
+      if (u.pathname.includes("/redir/redirect")) {
+        const target = u.searchParams.get("url");
+        if (target) return decodeURIComponent(target);
+      }
+    } catch { /* ignore */ }
+    return null;
+  }
+
+  function isExternal(href) {
+    try {
+      const h = new URL(href, "https://www.linkedin.com").host.toLowerCase();
+      return !h.includes("linkedin.com") && !h.includes("licdn.com");
+    } catch { return false; }
+  }
+
+  // Best-effort website from a company About page: prefer a redirect-wrapped link, else the
+  // first external (non-LinkedIn) http link. Returns a clean root URL.
+  function extractWebsite(doc) {
+    const anchors = [...doc.querySelectorAll("a[href]")];
+    for (const a of anchors) {
+      const t = unwrapRedirect(a.getAttribute("href"));
+      if (t && isExternal(t)) return rootUrl(t);
+    }
+    for (const a of anchors) {
+      const href = a.getAttribute("href") || "";
+      if (/^https?:\/\//i.test(href) && isExternal(href)) return rootUrl(href);
+    }
+    return null;
+  }
+
+  function rootUrl(u) {
+    try { return new URL(u).origin; } catch { return u; }
+  }
+
+  // Map a company-page <dl> (or labelled rows) into { industry, companySize, headquarters }.
+  function extractAboutFields(doc) {
+    const out = {};
+    const want = {
+      "industry": "industry", "bransch": "industry",
+      "company size": "companySize", "antal anställda": "companySize", "företagsstorlek": "companySize",
+      "headquarters": "headquarters", "huvudkontor": "headquarters",
+    };
+    // <dt>label</dt><dd>value</dd>
+    for (const dt of doc.querySelectorAll("dt")) {
+      const label = clean(dt.textContent).toLowerCase().replace(/:$/, "");
+      const key = want[label];
+      if (!key || out[key]) continue;
+      const dd = dt.nextElementSibling;
+      if (dd && dd.tagName === "DD") out[key] = clean(dd.textContent);
+    }
+    return out;
+  }
+
+  function companyLinkedInUrl(doc) {
+    const href = (typeof location !== "undefined" && location.href) ||
+      doc.querySelector('link[rel="canonical"]')?.getAttribute("href") || "";
+    const m = href.match(/\/company\/[^/?#]+/);
+    return m ? "https://www.linkedin.com" + m[0] + "/" : null;
+  }
+
+  // Parse the currently-open LinkedIn company page into a CompanyImportRow shape.
+  function parseCompanyPage(doc) {
+    const d = doc || (typeof document !== "undefined" ? document : null);
+    if (!d) return null;
+    const h1 = d.querySelector("h1");
+    const name = h1 ? clean(h1.textContent) : "";
+    const about = extractAboutFields(d);
+    return {
+      name,
+      website: extractWebsite(d),
+      industry: about.industry || null,
+      companySize: about.companySize || null,
+      headquarters: about.headquarters || null,
+      linkedinUrl: companyLinkedInUrl(d),
+    };
+  }
+
   const API = {
     clean, cleanProfileUrl, handleFromUrl, lanFromLocation,
     parseCompany, parseCard, scanDocument,
+    unwrapRedirect, extractWebsite, parseCompanyPage,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;
