@@ -1,0 +1,34 @@
+# Private source material — third-party personal data + Lexicon's internal deck. Local only.
+Material/
+
+# Personal pre-filled deliverables (real name/email/phone). Local only.
+Deliverable.local/
+
+# Local-first data — never commit the database or its WAL/SHM sidecars
+*.db
+*.db-shm
+*.db-wal
+apl.db
+
+# Secrets / config
+.env
+.env.*
+!.env.example
+appsettings.Development.json
+appsettings.*.local.json
+
+# .NET
+bin/
+obj/
+*.user
+
+# Node / frontend
+node_modules/
+dist/
+.vite/
+
+# IDE / OS
+.idea/
+.vs/
+.vscode/
+.DS_Store

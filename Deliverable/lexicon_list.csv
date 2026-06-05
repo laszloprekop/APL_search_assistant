@@ -1,0 +1,3 @@
+foretag,org_nr,ort,lan,antal_anstallda,ekonomi_note,kontaktperson,titel,linkedin_url,epost,telefon,kontaktkalla,status
+SAMPLE AB,556000-0000,Luleå,Norrbotten,5-9,"Omsättning ~8 Mkr, positivt resultat",Anna Exempel,Utvecklingschef,https://linkedin.com/in/exempel,anna@sample.se,0920-000000,website,not_contacted
+SAMPLE 2 AB,556111-1111,Umeå,Västerbotten,10-19,"Stabil, vinst 2 år i rad",Erik Prov,Lead Developer,https://linkedin.com/in/prov,kontakt@sample2.se,090-000000,switchboard,not_contacted
