@@ -1,0 +1,14 @@
+@import "tailwindcss";
+@import "@mdi/font/css/materialdesignicons.css";
+
+/* UI font: a Nerd Font for the dev-tool aesthetic (honors the nerdfonts request),
+   degrading to system monospace if none is installed locally. Material Design Icons
+   (@mdi/font) supply the icon range regardless. */
+@theme {
+  --font-sans: "JetBrainsMono Nerd Font", "Hack Nerd Font", "FiraCode Nerd Font",
+    "Symbols Nerd Font", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root { color-scheme: light; }
+html, body, #root { height: 100%; }
+body { margin: 0; }

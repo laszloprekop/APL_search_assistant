@@ -1,0 +1,54 @@
+import type { Stats } from "../types";
+import { Icon, stageMeta, STAGES } from "../lib/ui";
+
+export function StatsBar({ stats }: { stats: Stats | null }) {
+  if (!stats) return null;
+  const pct = Math.min(100, Math.round((stats.readyForList / stats.target) * 100));
+  const done = stats.readyForList >= stats.target;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+        <div className="flex items-baseline gap-2">
+          <Icon name="format-list-checks" className="text-indigo-500" />
+          <span className="text-2xl font-semibold text-slate-800">
+            {stats.readyForList}
+          </span>
+          <span className="text-slate-400">/ {stats.target} hosts ready</span>
+          <span className="text-xs text-slate-400">(mail + phone)</span>
+        </div>
+        <div className="flex items-baseline gap-2 text-slate-500">
+          <Icon name="domain" className="text-slate-400" />
+          <span className="font-medium text-slate-700">{stats.total}</span> companies
+        </div>
+        {done && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-700 ring-1 ring-green-200">
+            <Icon name="check-circle" /> Target met — generate the Lexicon list
+          </span>
+        )}
+      </div>
+
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+        <div
+          className={`h-full rounded-full transition-all ${done ? "bg-green-500" : "bg-indigo-500"}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {STAGES.map((s) => {
+          const n = stats.byStage[s.value] ?? 0;
+          if (!n) return null;
+          return (
+            <span
+              key={s.value}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${stageMeta(s.value).badge}`}
+            >
+              {s.label} <span className="opacity-60">{n}</span>
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
