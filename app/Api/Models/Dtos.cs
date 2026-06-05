@@ -36,3 +36,6 @@ public record CaptureRow(
 public record ImportResult(int CompaniesCreated, int PersonsAdded, int DuplicatesSkipped, List<Guid> CompanyIds);
 
 public record StatsDto(int Total, int ReadyForList, int Target, Dictionary<string, int> ByStage);
+
+public record EnrichRequest(string? Website);
+public record EnrichResponse(CompanyDto Company, bool Ok, int ContactsFound, string? Error, string Message);

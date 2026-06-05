@@ -1,0 +1,168 @@
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
+using AngleSharp.Html.Parser;
+using Api.Models;
+
+namespace Api.Services;
+
+public record ContactHit(ContactType Type, string Value, Confidence Confidence);
+public record WebsiteEnrichment(bool Ok, string? SiteText, List<ContactHit> Contacts, string? Error);
+
+/// <summary>
+/// Cautious public-website enrichment (PRD §6.2): fetch the company site, pull a contact
+/// email + switchboard phone and the visible text. Polite (per-host throttle, sane UA,
+/// timeout) and degradeable — any failure returns Ok=false so the caller flags
+/// needs_manual_lookup. allabolag.se is intentionally NOT auto-fetched (Cloudflare; PRD §11).
+/// </summary>
+public class EnrichmentService
+{
+    private readonly HttpClient _http;
+    private readonly ILogger<EnrichmentService> _log;
+    private static readonly ConcurrentDictionary<string, DateTimeOffset> LastFetch = new();
+    private static readonly HtmlParser Parser = new();
+
+    private static readonly Regex EmailRe =
+        new(@"[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+    private static readonly Regex PhoneRe =
+        new(@"(?:\+46|0)[\d\s\-()]{6,13}\d", RegexOptions.Compiled);
+    private static readonly string[] EmailBlocklist =
+        { "sentry", "wixpress", "example.", "your-email", "email@", "@sentry", ".png", ".jpg" };
+
+    public EnrichmentService(HttpClient http, ILogger<EnrichmentService> log)
+    {
+        _http = http;
+        _log = log;
+    }
+
+    public async Task<WebsiteEnrichment> EnrichWebsiteAsync(string url)
+    {
+        try
+        {
+            var home = await FetchAsync(url);
+            if (home is null) return new(false, null, new(), "Could not fetch the site.");
+
+            var hits = ExtractContacts(home.Value.Html);
+            var siteText = ExtractText(home.Value.Html);
+
+            // Follow one contact page if the homepage was thin on hits.
+            if (hits.Count < 2)
+            {
+                var contactUrl = FindContactLink(home.Value.Html, url);
+                if (contactUrl is not null)
+                {
+                    var cp = await FetchAsync(contactUrl);
+                    if (cp is not null) hits.AddRange(ExtractContacts(cp.Value.Html));
+                }
+            }
+
+            hits = Dedupe(hits);
+            var ok = hits.Count > 0 || !string.IsNullOrWhiteSpace(siteText);
+            return new(ok, siteText, hits, null);
+        }
+        catch (Exception e)
+        {
+            _log.LogWarning("Enrichment failed for {Url}: {Msg}", url, e.Message);
+            return new(false, null, new(), e.Message);
+        }
+    }
+
+    private async Task<(string Html, string BaseUrl)?> FetchAsync(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return null;
+        await ThrottleAsync(uri.Host);
+        using var res = await _http.GetAsync(uri);
+        if (!res.IsSuccessStatusCode) return null;
+        var html = await res.Content.ReadAsStringAsync();
+        if (html.Length > 500_000) html = html[..500_000];
+        return (html, uri.GetLeftPart(UriPartial.Authority));
+    }
+
+    private static async Task ThrottleAsync(string host)
+    {
+        if (LastFetch.TryGetValue(host, out var last))
+        {
+            var wait = TimeSpan.FromMilliseconds(1500) - (DateTimeOffset.UtcNow - last);
+            if (wait > TimeSpan.Zero) await Task.Delay(wait);
+        }
+        LastFetch[host] = DateTimeOffset.UtcNow;
+    }
+
+    private static List<ContactHit> ExtractContacts(string html)
+    {
+        var doc = Parser.ParseDocument(html);
+        var hits = new List<ContactHit>();
+
+        // mailto: / tel: links are high-confidence.
+        foreach (var a in doc.QuerySelectorAll("a[href]"))
+        {
+            var href = a.GetAttribute("href") ?? "";
+            if (href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+            {
+                var v = Clean(href[7..].Split('?')[0]);
+                if (IsEmail(v)) hits.Add(new(ContactType.Email, v.ToLowerInvariant(), Confidence.High));
+            }
+            else if (href.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
+            {
+                var v = Clean(href[4..]);
+                if (v.Any(char.IsDigit)) hits.Add(new(ContactType.Phone, v, Confidence.High));
+            }
+        }
+
+        // Free-text scan is medium-confidence. Use tag-separated text so adjacent elements
+        // don't concatenate into garbage tokens (e.g. "Stockholm"+"info@x.se" -> "Stockholminfo@x.se").
+        var text = HtmlToText(html);
+        foreach (Match m in EmailRe.Matches(text))
+            if (IsEmail(m.Value)) hits.Add(new(ContactType.Email, m.Value.ToLowerInvariant(), Confidence.Medium));
+        foreach (Match m in PhoneRe.Matches(text))
+        {
+            var v = Clean(m.Value);
+            var digits = v.Count(char.IsDigit);
+            if (digits is >= 8 and <= 12) hits.Add(new(ContactType.Phone, v, Confidence.Medium));
+        }
+
+        return hits;
+    }
+
+    private static string? ExtractText(string html)
+    {
+        var t = HtmlToText(html);
+        return t.Length == 0 ? null : (t.Length > 2000 ? t[..2000] : t);
+    }
+
+    // Strip script/style, replace tags with spaces, decode entities, collapse whitespace.
+    private static string HtmlToText(string html)
+    {
+        var noScript = Regex.Replace(html, @"<(script|style)[^>]*>.*?</\1>", " ",
+            RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        var noTags = Regex.Replace(noScript, "<[^>]+>", " ");
+        var decoded = System.Net.WebUtility.HtmlDecode(noTags);
+        return Regex.Replace(decoded, @"\s+", " ").Trim();
+    }
+
+    private static string? FindContactLink(string html, string baseUrl)
+    {
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var b)) return null;
+        var doc = Parser.ParseDocument(html);
+        foreach (var a in doc.QuerySelectorAll("a[href]"))
+        {
+            var href = a.GetAttribute("href") ?? "";
+            var text = (a.TextContent ?? "").ToLowerInvariant();
+            var match = href.Contains("kontakt", StringComparison.OrdinalIgnoreCase)
+                || href.Contains("contact", StringComparison.OrdinalIgnoreCase)
+                || text.Contains("kontakt") || text.Contains("contact");
+            if (match && Uri.TryCreate(b, href, out var abs)) return abs.ToString();
+        }
+        return null;
+    }
+
+    // Keep the best (highest) confidence per unique (type, value). Confidence enum: High=0.
+    private static List<ContactHit> Dedupe(List<ContactHit> hits) =>
+        hits.GroupBy(h => (h.Type, h.Value.ToLowerInvariant()))
+            .Select(g => g.OrderBy(h => h.Confidence).First())
+            .ToList();
+
+    private static string Clean(string s) => Regex.Replace(Uri.UnescapeDataString(s).Trim(), @"\s+", " ");
+
+    private static bool IsEmail(string s) =>
+        EmailRe.IsMatch(s) && !EmailBlocklist.Any(b => s.Contains(b, StringComparison.OrdinalIgnoreCase));
+}

@@ -90,3 +90,11 @@ export interface ImportResult {
   duplicatesSkipped: number;
   companyIds: string[];
 }
+
+export interface EnrichResponse {
+  company: Company;
+  ok: boolean;
+  contactsFound: number;
+  error?: string | null;
+  message: string;
+}

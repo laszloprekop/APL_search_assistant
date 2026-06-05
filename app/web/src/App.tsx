@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Company, CompanyCreate, CompanyStage, Contact, Stats } from "./types";
+import type { Company, CompanyCreate, CompanyStage, CompanyUpdate, Contact, Stats } from "./types";
 import { api, toUpdate } from "./api";
 import { Icon, STAGES } from "./lib/ui";
 import { StatsBar } from "./components/StatsBar";
@@ -37,6 +37,8 @@ function App() {
   const addContact = async (companyId: string, contact: Contact) => { await api.addContact(companyId, contact); load(); };
   const deleteContact = async (id: string) => { await api.deleteContact(id); load(); };
   const importCapture = async (rows: unknown[]) => { const r = await api.importCapture(rows); load(); return r; };
+  const updateFields = async (c: Company, over: Partial<CompanyUpdate>) => { await api.updateCompany(c.id, toUpdate(c, over)); load(); };
+  const enrich = async (c: Company, website?: string) => { const r = await api.enrich(c.id, website); load(); return r; };
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-800">
@@ -92,6 +94,8 @@ function App() {
           onDelete={deleteCompany}
           onAddContact={addContact}
           onDeleteContact={deleteContact}
+          onEnrich={enrich}
+          onUpdateFields={updateFields}
         />
       </div>
     </div>

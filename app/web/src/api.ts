@@ -1,5 +1,5 @@
 import type {
-  Company, CompanyCreate, CompanyUpdate, Contact, ImportResult, Stats,
+  Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, ImportResult, Stats,
 } from "./types";
 
 const BASE = "/api";
@@ -44,6 +44,12 @@ export const api = {
 
   importCapture: (rows: unknown[]) =>
     http<ImportResult>("/companies/import", { method: "POST", body: JSON.stringify(rows) }),
+
+  enrich: (id: string, website?: string) =>
+    http<EnrichResponse>(`/companies/${id}/enrich`, {
+      method: "POST",
+      body: JSON.stringify({ website: website ?? null }),
+    }),
 };
 
 // Build a full update DTO from a company, overriding some fields.

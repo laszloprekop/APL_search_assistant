@@ -1,5 +1,7 @@
 import { Fragment, useState } from "react";
-import type { Company, CompanyStage, Contact, ContactType, ContactSource } from "../types";
+import type {
+  Company, CompanyStage, CompanyUpdate, Contact, ContactType, ContactSource, EnrichResponse,
+} from "../types";
 import { Icon, STAGES, stageMeta, sourceIcon, enrichmentMeta } from "../lib/ui";
 
 interface Props {
@@ -8,9 +10,13 @@ interface Props {
   onDelete: (id: string) => void;
   onAddContact: (companyId: string, contact: Contact) => void;
   onDeleteContact: (id: string) => void;
+  onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
+  onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
 }
 
-export function CompanyTable({ companies, onChangeStage, onDelete, onAddContact, onDeleteContact }: Props) {
+export function CompanyTable({
+  companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields,
+}: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
     setOpen((p) => {
@@ -117,7 +123,7 @@ export function CompanyTable({ companies, onChangeStage, onDelete, onAddContact,
                   <tr className="bg-slate-50/50">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
-                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} />
+                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} />
                     </td>
                   </tr>
                 )}
@@ -131,11 +137,13 @@ export function CompanyTable({ companies, onChangeStage, onDelete, onAddContact,
 }
 
 function ExpandedRow({
-  c, onAddContact, onDeleteContact,
+  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields,
 }: {
   c: Company;
   onAddContact: (companyId: string, contact: Contact) => void;
   onDeleteContact: (id: string) => void;
+  onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
+  onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
 }) {
   const [type, setType] = useState<ContactType>("Email");
   const [value, setValue] = useState("");
@@ -148,7 +156,8 @@ function ExpandedRow({
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
       <div>
         <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
           <Icon name="account-multiple" /> Persons
@@ -207,6 +216,101 @@ function ExpandedRow({
             <Icon name="plus" /> Add
           </button>
         </div>
+      </div>
+      </div>
+      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} />
+    </div>
+  );
+}
+
+function EnrichmentSection({
+  c, onEnrich, onUpdateFields,
+}: {
+  c: Company;
+  onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
+  onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
+}) {
+  const [website, setWebsite] = useState(c.website ?? "");
+  const [orgNumber, setOrgNumber] = useState(c.orgNumber ?? "");
+  const [lan, setLan] = useState(c.locationLan ?? "");
+  const [kommun, setKommun] = useState(c.locationKommun ?? "");
+  const [revenueBand, setRevenueBand] = useState(c.revenueBand ?? "");
+  const [employeeCount, setEmployeeCount] = useState(c.employeeCount ?? "");
+  const [financialNote, setFinancialNote] = useState(c.financialNote ?? "");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  const em = enrichmentMeta(c.enrichmentStatus);
+  const inp = "w-full rounded border border-slate-200 px-2 py-1 text-xs";
+
+  const save = () =>
+    onUpdateFields(c, {
+      website: website || null, orgNumber: orgNumber || null,
+      locationLan: lan || null, locationKommun: kommun || null,
+      revenueBand: revenueBand || null, employeeCount: employeeCount || null,
+      financialNote: financialNote || null,
+    });
+
+  const auto = async () => {
+    let url = website.trim();
+    if (!url) {
+      const v = window.prompt("Company website URL to fetch contacts from:");
+      if (!v) return;
+      url = v.trim();
+      setWebsite(url);
+    }
+    setBusy(true);
+    setMsg(null);
+    try { setMsg((await onEnrich(c, url)).message); }
+    catch (e) { setMsg(String(e)); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="rounded-lg border border-slate-200 bg-white p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <h4 className="flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+          <Icon name="database-search" /> Enrichment
+        </h4>
+        <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
+          <Icon name={em.icon} /> {em.label}
+        </span>
+        <button onClick={auto} disabled={busy}
+          className="ml-auto inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+          <Icon name="web" /> {busy ? "Fetching…" : "Auto-enrich from website"}
+        </button>
+      </div>
+      {msg && <p className="mb-2 text-xs text-slate-500">{msg}</p>}
+      <div className="grid gap-2 sm:grid-cols-3">
+        <label className="text-[11px] text-slate-500 sm:col-span-3">Website
+          <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://…" className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Org.nr
+          <input value={orgNumber} onChange={(e) => setOrgNumber(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Län
+          <input value={lan} onChange={(e) => setLan(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Kommun
+          <input value={kommun} onChange={(e) => setKommun(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Revenue band
+          <input value={revenueBand} onChange={(e) => setRevenueBand(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Employees
+          <input value={employeeCount} onChange={(e) => setEmployeeCount(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500">Financial note
+          <input value={financialNote} onChange={(e) => setFinancialNote(e.target.value)} className={inp} />
+        </label>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button onClick={save} className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700">
+          <Icon name="content-save" /> Save fields
+        </button>
+        <span className="text-[11px] text-slate-400">
+          allabolag is manual — paste org.nr / financials here (Cloudflare blocks auto-fetch).
+        </span>
       </div>
     </div>
   );

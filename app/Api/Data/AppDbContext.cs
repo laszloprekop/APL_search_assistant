@@ -13,6 +13,13 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder b)
     {
+        // Keys are client-generated Guids (set in the entity initializers). Tell EF so it
+        // doesn't treat them as store-generated — that path miscounts affected rows on SQLite
+        // and throws a spurious DbUpdateConcurrencyException when inserting child rows.
+        b.Entity<Company>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<Person>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<ContactInfo>().Property(x => x.Id).ValueGeneratedNever();
+
         b.Entity<Company>(e =>
         {
             e.Property(x => x.Name).IsRequired();

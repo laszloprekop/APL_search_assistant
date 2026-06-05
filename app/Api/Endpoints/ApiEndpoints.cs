@@ -1,5 +1,6 @@
 using Api.Data;
 using Api.Models;
+using Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Endpoints;
@@ -190,6 +191,50 @@ public static class ApiEndpoints
 
             await db.SaveChangesAsync();
             return Results.Ok(new ImportResult(companiesCreated, personsAdded, skipped, touched));
+        });
+
+        // ---- enrichment: cautious public-website fetch (PRD §6.2) ------------
+        api.MapPost("/companies/{id:guid}/enrich", async (AppDbContext db, EnrichmentService svc, Guid id, EnrichRequest? body) =>
+        {
+            var c = await Load(db, id);
+            if (c is null) return Results.NotFound();
+
+            var url = !string.IsNullOrWhiteSpace(body?.Website) ? body!.Website!.Trim() : c.Website;
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                c.EnrichmentStatus = EnrichmentStatus.NeedsManualLookup;
+                c.UpdatedAt = DateTimeOffset.UtcNow;
+                await db.SaveChangesAsync();
+                return Results.Ok(new EnrichResponse(ToDto(c), false, 0, null,
+                    "No website known — add one, or call the switchboard and enter contacts manually (deck §4B)."));
+            }
+            if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) url = "https://" + url;
+
+            var r = await svc.EnrichWebsiteAsync(url);
+            c.Website = url;
+            if (r.Ok)
+            {
+                if (!string.IsNullOrWhiteSpace(r.SiteText)) c.SiteTextRaw = r.SiteText;
+                foreach (var hit in r.Contacts)
+                {
+                    if (!c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase)))
+                        c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence });
+                }
+                var hasContact = c.Contacts.Any(x => x.Type == ContactType.Email) || c.Contacts.Any(x => x.Type == ContactType.Phone);
+                c.EnrichmentStatus = hasContact ? EnrichmentStatus.Enriched : EnrichmentStatus.NeedsManualLookup;
+                c.EnrichedAt = DateTimeOffset.UtcNow;
+            }
+            else
+            {
+                c.EnrichmentStatus = EnrichmentStatus.NeedsManualLookup;
+            }
+            c.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+
+            var msg = r.Ok
+                ? $"Found {r.Contacts.Count} contact(s) on the site."
+                : $"Couldn't enrich automatically — flagged for manual lookup. {r.Error}";
+            return Results.Ok(new EnrichResponse(ToDto(c), r.Ok, r.Contacts.Count, r.Error, msg));
         });
 
         // ---- stats: counter toward the ≥15 list (PRD §6.3) -------------------
