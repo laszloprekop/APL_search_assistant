@@ -7,6 +7,7 @@ public class Company
     public string Name { get; set; } = "";
     public string? OrgNumber { get; set; }
     public string? Website { get; set; }
+    public string? LinkedInUrl { get; set; } // company LinkedIn page (from company-page capture)
     public string? LocationLan { get; set; }
     public string? LocationKommun { get; set; }
     public string? RevenueBand { get; set; }
@@ -61,4 +62,5 @@ public class ContactInfo
     public string Value { get; set; } = "";
     public ContactSource Source { get; set; } = ContactSource.Manual;
     public Confidence? Confidence { get; set; }
+    public string? SourceUrl { get; set; } // exact page the value was extracted from
 }

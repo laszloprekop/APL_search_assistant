@@ -24,6 +24,7 @@ export interface Contact {
   value: string;
   source: ContactSource;
   confidence?: Confidence | null;
+  sourceUrl?: string | null;
 }
 
 export interface Company {
@@ -34,6 +35,7 @@ export interface Company {
   source: CompanySource;
   orgNumber?: string | null;
   website?: string | null;
+  linkedInUrl?: string | null;
   locationLan?: string | null;
   locationKommun?: string | null;
   revenueBand?: string | null;

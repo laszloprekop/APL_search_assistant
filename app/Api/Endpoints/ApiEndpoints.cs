@@ -218,7 +218,7 @@ public static class ApiEndpoints
                 foreach (var hit in r.Contacts)
                 {
                     if (!c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase)))
-                        c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence });
+                        c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence, SourceUrl = hit.SourceUrl });
                 }
                 var hasContact = c.Contacts.Any(x => x.Type == ContactType.Email) || c.Contacts.Any(x => x.Type == ContactType.Phone);
                 c.EnrichmentStatus = hasContact ? EnrichmentStatus.Enriched : EnrichmentStatus.NeedsManualLookup;
@@ -290,6 +290,7 @@ public static class ApiEndpoints
 
                 // LinkedIn's own "About" data is authoritative — fill website + size/HQ/industry.
                 if (!string.IsNullOrWhiteSpace(r.Website)) c.Website = r.Website.Trim();
+                if (!string.IsNullOrWhiteSpace(r.LinkedinUrl)) c.LinkedInUrl = r.LinkedinUrl.Trim();
                 if (!string.IsNullOrWhiteSpace(r.CompanySize)) c.EmployeeCount = r.CompanySize.Trim();
                 if (!string.IsNullOrWhiteSpace(r.Headquarters) && string.IsNullOrWhiteSpace(c.LocationKommun))
                     c.LocationKommun = r.Headquarters.Trim();
@@ -332,11 +333,11 @@ public static class ApiEndpoints
         var hasPhone = HasType(c, ContactType.Phone);
         return new CompanyDto(
             c.Id, c.Name, c.Stage, c.EnrichmentStatus, c.Source,
-            c.OrgNumber, c.Website, c.LocationLan, c.LocationKommun,
+            c.OrgNumber, c.Website, c.LinkedInUrl, c.LocationLan, c.LocationKommun,
             c.RevenueBand, c.EmployeeCount, c.FinancialNote, c.TechStackGuess, c.Notes,
             hasEmail, hasPhone, hasEmail && hasPhone,
             c.CreatedAt, c.UpdatedAt, c.EnrichedAt,
             c.Persons.Select(p => new PersonDto(p.Id, p.Name, p.Title, p.LinkedInUrl, p.LinkedInHandle, p.Notes)).ToList(),
-            c.Contacts.Select(x => new ContactDto(x.Id, x.Type, x.Value, x.Source, x.Confidence)).ToList());
+            c.Contacts.Select(x => new ContactDto(x.Id, x.Type, x.Value, x.Source, x.Confidence, x.SourceUrl)).ToList());
     }
 }

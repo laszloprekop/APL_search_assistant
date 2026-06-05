@@ -5,7 +5,7 @@ using Api.Models;
 
 namespace Api.Services;
 
-public record ContactHit(ContactType Type, string Value, Confidence Confidence);
+public record ContactHit(ContactType Type, string Value, Confidence Confidence, string? SourceUrl = null);
 public record WebsiteEnrichment(bool Ok, string? SiteText, List<ContactHit> Contacts, string? Error);
 
 /// <summary>
@@ -41,7 +41,7 @@ public class EnrichmentService
             var home = await FetchAsync(url);
             if (home is null) return new(false, null, new(), "Could not fetch the site.");
 
-            var hits = ExtractContacts(home.Value.Html);
+            var hits = ExtractContacts(home.Value.Html, url);
             var siteText = ExtractText(home.Value.Html);
 
             // Follow one contact page if the homepage was thin on hits.
@@ -51,7 +51,7 @@ public class EnrichmentService
                 if (contactUrl is not null)
                 {
                     var cp = await FetchAsync(contactUrl);
-                    if (cp is not null) hits.AddRange(ExtractContacts(cp.Value.Html));
+                    if (cp is not null) hits.AddRange(ExtractContacts(cp.Value.Html, contactUrl));
                 }
             }
 
@@ -87,7 +87,7 @@ public class EnrichmentService
         LastFetch[host] = DateTimeOffset.UtcNow;
     }
 
-    private static List<ContactHit> ExtractContacts(string html)
+    private static List<ContactHit> ExtractContacts(string html, string sourceUrl)
     {
         var doc = Parser.ParseDocument(html);
         var hits = new List<ContactHit>();
@@ -99,12 +99,12 @@ public class EnrichmentService
             if (href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
             {
                 var v = Clean(href[7..].Split('?')[0]);
-                if (IsEmail(v)) hits.Add(new(ContactType.Email, v.ToLowerInvariant(), Confidence.High));
+                if (IsEmail(v)) hits.Add(new(ContactType.Email, v.ToLowerInvariant(), Confidence.High, sourceUrl));
             }
             else if (href.StartsWith("tel:", StringComparison.OrdinalIgnoreCase))
             {
                 var v = Clean(href[4..]);
-                if (v.Any(char.IsDigit)) hits.Add(new(ContactType.Phone, v, Confidence.High));
+                if (v.Any(char.IsDigit)) hits.Add(new(ContactType.Phone, v, Confidence.High, sourceUrl));
             }
         }
 
@@ -112,12 +112,12 @@ public class EnrichmentService
         // don't concatenate into garbage tokens (e.g. "Stockholm"+"info@x.se" -> "Stockholminfo@x.se").
         var text = HtmlToText(html);
         foreach (Match m in EmailRe.Matches(text))
-            if (IsEmail(m.Value)) hits.Add(new(ContactType.Email, m.Value.ToLowerInvariant(), Confidence.Medium));
+            if (IsEmail(m.Value)) hits.Add(new(ContactType.Email, m.Value.ToLowerInvariant(), Confidence.Medium, sourceUrl));
         foreach (Match m in PhoneRe.Matches(text))
         {
             var v = Clean(m.Value);
             var digits = v.Count(char.IsDigit);
-            if (digits is >= 8 and <= 12) hits.Add(new(ContactType.Phone, v, Confidence.Medium));
+            if (digits is >= 8 and <= 12) hits.Add(new(ContactType.Phone, v, Confidence.Medium, sourceUrl));
         }
 
         return hits;

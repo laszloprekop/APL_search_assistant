@@ -56,7 +56,7 @@ export function CompanyTable({
             const em = enrichmentMeta(c.enrichmentStatus);
             return (
               <Fragment key={c.id}>
-                <tr className="hover:bg-slate-50/70">
+                <tr className={open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}>
                   <td className="px-3 py-2 align-top">
                     <button onClick={() => toggle(c.id)} className="text-slate-400 hover:text-slate-700">
                       <Icon name={open.has(c.id) ? "chevron-down" : "chevron-right"} />
@@ -65,7 +65,13 @@ export function CompanyTable({
                   <td className="px-3 py-2 align-top">
                     <div className="flex items-center gap-1.5 font-medium text-slate-800">
                       <Icon name={sourceIcon(c.source)} className="text-slate-400" title={c.source} />
-                      {c.name}
+                      {c.linkedInUrl ? (
+                        <a href={c.linkedInUrl} target="_blank" rel="noreferrer"
+                          className="hover:text-[#0a66c2] hover:underline"
+                          title="Open LinkedIn company page">
+                          {c.name}
+                        </a>
+                      ) : c.name}
                     </div>
                     <div className="text-xs text-slate-400">
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
@@ -122,7 +128,7 @@ export function CompanyTable({
                   </td>
                 </tr>
                 {open.has(c.id) && (
-                  <tr className="bg-slate-50/50">
+                  <tr className="bg-indigo-50/60">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} />
@@ -189,7 +195,14 @@ function ExpandedRow({
             <li key={ct.id} className="flex items-center gap-2 text-sm text-slate-700">
               <Icon name={ct.type === "Email" ? "email" : "phone"} className="text-slate-400" />
               <span>{ct.value}</span>
-              <span className="text-xs text-slate-400">({ct.source})</span>
+              {ct.sourceUrl ? (
+                <a href={ct.sourceUrl} target="_blank" rel="noreferrer"
+                  className="text-xs text-indigo-500 hover:underline" title={`Extracted from ${ct.sourceUrl}`}>
+                  ({ct.source} <Icon name="open-in-new" className="text-[10px]" />)
+                </a>
+              ) : (
+                <span className="text-xs text-slate-400">({ct.source})</span>
+              )}
               <button onClick={() => ct.id && onDeleteContact(ct.id)} className="text-slate-300 hover:text-rose-500">
                 <Icon name="close" />
               </button>
@@ -313,21 +326,37 @@ function EnrichmentSection({
       {searchMsg && <p className="mb-2 text-xs text-amber-600">{searchMsg}</p>}
       {cands && cands.length > 0 && (
         <div className="mb-2 space-y-1">
-          <p className="text-[11px] text-slate-400">Pick the official site (sets it + enriches):</p>
+          <p className="text-[11px] text-slate-400">Click the link to preview, “Use” to set it + enrich:</p>
           {cands.map((cand) => (
-            <button key={cand.url} onClick={() => pick(cand.url)}
-              className="flex w-full items-center gap-2 rounded border border-slate-200 px-2 py-1 text-left text-xs hover:bg-slate-50">
-              <Icon name="open-in-new" className="text-slate-400" />
-              <span className="font-medium text-indigo-600">{cand.url.replace(/^https?:\/\//, "")}</span>
+            <div key={cand.url}
+              className="flex items-center gap-2 rounded border border-slate-200 px-2 py-1 text-xs">
+              <a href={cand.url} target="_blank" rel="noreferrer" title="Preview in new tab"
+                className="flex items-center gap-1 font-medium text-indigo-600 hover:underline">
+                <Icon name="open-in-new" className="text-slate-400" />
+                {cand.url.replace(/^https?:\/\//, "")}
+              </a>
               <span className="truncate text-slate-400">{cand.title}</span>
               {cand.reason && <span className="ml-auto shrink-0 text-[10px] text-emerald-600">{cand.reason}</span>}
-            </button>
+              <button onClick={() => pick(cand.url)}
+                className="shrink-0 rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-700">
+                Use
+              </button>
+            </div>
           ))}
         </div>
       )}
       {msg && <p className="mb-2 text-xs text-slate-500">{msg}</p>}
       <div className="grid gap-2 sm:grid-cols-3">
-        <label className="text-[11px] text-slate-500 sm:col-span-3">Website
+        <label className="text-[11px] text-slate-500 sm:col-span-3">
+          <span className="flex items-center gap-1">
+            Website
+            {c.website && (
+              <a href={c.website} target="_blank" rel="noreferrer" title="Open saved website"
+                className="text-indigo-500 hover:underline">
+                <Icon name="open-in-new" /> open
+              </a>
+            )}
+          </span>
           <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://…" className={inp} />
         </label>
         <label className="text-[11px] text-slate-500">Org.nr

@@ -2,7 +2,7 @@ namespace Api.Models;
 
 public record PersonDto(Guid? Id, string Name, string? Title, string? LinkedInUrl, string? LinkedInHandle, string? Notes);
 
-public record ContactDto(Guid? Id, ContactType Type, string Value, ContactSource Source, Confidence? Confidence);
+public record ContactDto(Guid? Id, ContactType Type, string Value, ContactSource Source, Confidence? Confidence, string? SourceUrl = null);
 
 public record CompanyCreateDto(
     string Name,
@@ -22,7 +22,7 @@ public record CompanyUpdateDto(
 
 public record CompanyDto(
     Guid Id, string Name, CompanyStage Stage, EnrichmentStatus EnrichmentStatus, CompanySource Source,
-    string? OrgNumber, string? Website, string? LocationLan, string? LocationKommun,
+    string? OrgNumber, string? Website, string? LinkedInUrl, string? LocationLan, string? LocationKommun,
     string? RevenueBand, string? EmployeeCount, string? FinancialNote, string? TechStackGuess, string? Notes,
     bool HasEmail, bool HasPhone, bool ReadyForList,
     DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt, DateTimeOffset? EnrichedAt,
