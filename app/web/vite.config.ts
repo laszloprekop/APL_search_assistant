@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
+    // Dedicated port so APL never shares an origin (and thus a service worker / cache) with
+    // other local Vite/PWA apps. strictPort fails fast instead of silently hopping ports.
+    port: 5180,
+    strictPort: true,
     // Proxy API calls to the ASP.NET Core dev server so the frontend stays same-origin.
     proxy: { '/api': 'http://localhost:5099' },
   },

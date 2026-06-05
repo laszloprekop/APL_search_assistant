@@ -29,7 +29,7 @@ dotnet run
 ```
 cd app/web
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5180 (dedicated port; strictPort)
 ```
 
 ## API surface (M1)

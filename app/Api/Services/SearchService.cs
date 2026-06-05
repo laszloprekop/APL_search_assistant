@@ -24,9 +24,17 @@ public class SearchService
     // Aggregators / socials / directories that aren't the company's own site.
     private static readonly string[] Excluded =
     {
-        "linkedin.", "facebook.", "instagram.", "twitter.", "x.com", "youtube.", "tiktok.",
-        "allabolag.", "ratsit.", "hitta.", "eniro.", "merinfo.", "wikipedia.", "indeed.",
-        "glassdoor.", "bloomberg.", "crunchbase.", "blocket.", "google.", "facebook.com",
+        // socials
+        "linkedin.", "facebook.", "instagram.", "twitter.", "x.com", "youtube.", "tiktok.", "pinterest.",
+        // Swedish company directories / registries
+        "allabolag.", "ratsit.", "hitta.", "eniro.", "merinfo.", "proff.", "bolagsfakta.",
+        "largestcompanies.", "cylex", "bizzdo.", "ppettider", "xn--",
+        "industritorget.", "bolag.org", "uochd.",
+        // PR / newswire (not the company's own site)
+        "cision.", "mynewsdesk.", "newsdesk.",
+        // intl business directories / data brokers
+        "wikipedia.", "indeed.", "glassdoor.", "bloomberg.", "crunchbase.", "zoominfo.",
+        "apollo.io", "rocketreach.", "dnb.com", "vainu.", "kompass.", "europages.", "blocket.", "google.",
     };
 
     public SearchService(IHttpClientFactory httpFactory, AppDbContext db, IConfiguration config, ILogger<SearchService> log)
@@ -58,12 +66,26 @@ public class SearchService
         if (!IsConfigured(s))
             return new("", new(), "Search isn't configured — open Settings and pick a provider + API key.");
 
-        var loc = c.LocationKommun ?? c.LocationLan ?? "Sverige";
-        var query = $"{c.Name} {loc}";
+        var city = CleanCity(c.LocationKommun) ?? CleanCity(c.LocationLan);
+        // Company name is usually distinctive enough; a clean city token disambiguates
+        // generic names. The raw LinkedIn location ("Umeå, Västerbotten County, Sweden") is
+        // too noisy for web search, so we reduce it to just the city.
+        var query = string.IsNullOrEmpty(city) ? c.Name : $"{c.Name} {city}";
         try
         {
             var results = await RunAsync(s, query);
-            return new(query, Rank(results, c.Name), null);
+            // If the name+city query is dry, retry on the bare company name before giving up.
+            if (results.Count == 0 && !string.IsNullOrEmpty(city))
+                results = await RunAsync(s, c.Name);
+
+            // Zero RAW results for a real company name usually means the provider returned no
+            // web data at all — i.e. the API key's plan/subscription isn't active, not a true
+            // zero-match. Surface that as a hint rather than a misleading "no candidates".
+            string? hint = results.Count == 0
+                ? $"{s.Provider} returned no results. If every search is empty, the API key's "
+                  + "plan/subscription may not be activated (e.g. Brave needs the free \"Web Search\" plan enabled)."
+                : null;
+            return new(query, Rank(results, c.Name), hint);
         }
         catch (Exception e)
         {
@@ -93,6 +115,25 @@ public class SearchService
     // Env/user-secrets win; report whether the value came from there (so the UI can lock it).
     private static (string?, bool) Resolve(string? fromEnv, string? fromDb) =>
         fromEnv is not null ? (fromEnv, true) : (fromDb, false);
+
+    // Reduce a messy LinkedIn location to a clean city token for search.
+    //   "Umeå, Västerbotten County, Sweden"  -> "Umeå"
+    //   "Greater Umeå Metropolitan Area"      -> "Umeå"
+    //   "Stockholm, Sweden"                   -> "Stockholm"
+    //   "Västerbotten"                        -> "Västerbotten"
+    private static readonly string[] LocNoise =
+        { "greater", "metropolitan", "area", "county", "region", "municipality", "sweden", "sverige", "the" };
+
+    private static string? CleanCity(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        var first = raw.Split(',')[0]; // "Umeå, Västerbotten County, Sweden" -> "Umeå ..."
+        var words = first.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(w => !LocNoise.Contains(w.ToLowerInvariant()))
+            .ToArray();
+        var city = string.Join(' ', words).Trim();
+        return string.IsNullOrWhiteSpace(city) ? null : city;
+    }
 
     private static bool IsConfigured(Cfg s) =>
         s.Provider != "none"
@@ -160,29 +201,67 @@ public class SearchService
     private static string Str(JsonElement e, string p) => e.TryGetProperty(p, out var v) ? (v.GetString() ?? "") : "";
 
     // ---- ranking ----
+    private static readonly string[] TwoPartTlds = { "co.uk", "com.au", "co.nz", "com.se" };
+
+    // Registrable domain label, robust to subdomains: careers.clavister.com -> "clavister",
+    // www.cossystems.com -> "cossystems", xlent.se -> "xlent".
+    private static string RegistrableDomain(string host)
+    {
+        host = host.ToLowerInvariant();
+        if (host.StartsWith("www.")) host = host[4..];
+        var p = host.Split('.');
+        if (p.Length <= 2) return p[0];
+        var lastTwo = p[^2] + "." + p[^1];
+        return TwoPartTlds.Contains(lastTwo) ? p[^3] : p[^2];
+    }
+
+    private static int SubdomainDepth(string host)
+    {
+        host = host.ToLowerInvariant();
+        if (host.StartsWith("www.")) host = host[4..];
+        return Math.Max(0, host.Split('.').Length - 2);
+    }
+
     private static List<WebsiteCandidate> Rank(List<SearchResult> results, string companyName)
     {
         var tokens = Tokenize(companyName);
-        var seen = new HashSet<string>();
-        var cands = new List<WebsiteCandidate>();
+        var collapsed = string.Concat(tokens); // "COS Systems" -> "cossystems"
+
+        var scored = new List<(WebsiteCandidate Cand, string Sld, int Depth)>();
         for (int i = 0; i < results.Count; i++)
         {
             var r = results[i];
             if (!Uri.TryCreate(r.Url, UriKind.Absolute, out var u)) continue;
             var host = u.Host.ToLowerInvariant();
             if (Excluded.Any(d => host.Contains(d))) continue;
-            if (!seen.Add(host)) continue; // one candidate per domain
 
+            var sld = RegistrableDomain(host);
+            var depth = SubdomainDepth(host);
             var reasons = new List<string>();
-            var domainName = host.Replace("www.", "").Split('.')[0];
-            var overlap = tokens.Count(t => domainName.Contains(t));
             var score = Math.Max(0, 10 - i); // earlier result = better
-            if (overlap > 0) { score += overlap * 30; reasons.Add("name match"); }
-            if (host.EndsWith(".se")) { score += 15; reasons.Add(".se"); }
 
-            cands.Add(new(u.GetLeftPart(UriPartial.Authority), r.Title, r.Snippet, score, string.Join(", ", reasons)));
+            if (sld == collapsed && collapsed.Length > 0) { score += 100; reasons.Add("exact domain"); }
+            else
+            {
+                var overlap = tokens.Count(t => sld.Contains(t));
+                if (overlap == tokens.Count && tokens.Count > 0) { score += 60; reasons.Add("name match"); }
+                else if (overlap > 0) { score += overlap * 25; reasons.Add("partial name"); }
+            }
+            if (host.EndsWith(".se")) { score += 10; reasons.Add(".se"); }
+            score -= depth * 8; // prefer the root domain over careers./jobb./news. subdomains
+
+            scored.Add((new(u.GetLeftPart(UriPartial.Authority), r.Title, r.Snippet, score, string.Join(", ", reasons)), sld, depth));
         }
-        return cands.OrderByDescending(c => c.Score).Take(5).ToList();
+
+        // One candidate per registrable domain — keep the root (shallowest), then highest score.
+        // Drop non-positive scores: better to show nothing (→ manual) than a confidently-wrong guess.
+        return scored
+            .GroupBy(x => x.Sld)
+            .Select(g => g.OrderBy(x => x.Depth).ThenByDescending(x => x.Cand.Score).First().Cand)
+            .Where(c => c.Score > 0)
+            .OrderByDescending(c => c.Score)
+            .Take(5)
+            .ToList();
     }
 
     private static List<string> Tokenize(string name) =>
