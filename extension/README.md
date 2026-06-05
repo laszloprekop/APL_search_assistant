@@ -25,8 +25,10 @@ currently viewing** into a CSV/JSON, to seed your APL contact list. Implements t
 1. Run your Boolean search on LinkedIn; let the results render.
 2. Click **Capture visible** — it grabs the cards on screen (deduped by profile handle).
 3. Scroll down to load more / go to the next page, click **Capture** again to accumulate.
-4. **Copy CSV** (or **Download CSV**) and paste/append into
-   `Deliverable.local/lexicon_list.csv`. **Copy JSON** gives the richer record.
+4. Export and paste into `Deliverable.local/lexicon_list.csv`:
+   - **Copy CSV** / **Download CSV** — includes the header row (use for a fresh file).
+   - **Copy rows** — header-less, for appending to a CSV that already has a header.
+   - **Copy JSON** — the richer record (incl. `company_confidence`, `raw_current`).
 
 ## Output (CSV schema)
 Columns match `Deliverable/lexicon_list.csv` so captures append straight into your ≥15 list.
@@ -66,11 +68,31 @@ On that Västerbotten `.NET` search, you should get rows like:
 best-effort; **review and edit** — LinkedIn's "Current" sometimes points at a side gig
 (e.g. Clive L. → "IKSU" from a training-instructor role, not his .NET work).
 
+## Layout
+- `parser.js` — pure parsing logic (no DOM mutation, no UI). Shared by the content script
+  and the tests. **This is the only file to touch when LinkedIn changes its DOM.**
+- `content.js` — the on-page panel, capture store, and CSV/JSON export.
+- `manifest.json` — loads `parser.js` then `content.js`.
+- `test/` — jsdom test suite.
+
+## Tests
+The parser is covered by a Node + jsdom suite that targets the **semantic contract** (not the
+hashed classes), including the tricky cases: verified vs. non-verified name sources, the
+company-precedence rule (Current → headline → Past), trailing-description trimming,
+mutual-connection links not hijacking the primary URL, percent-encoded handles, and skipping
+the Premium upsell card.
+
+```
+cd extension
+npm install      # installs jsdom (dev only)
+npm test         # node --test test/  -> 15 passing
+```
+
 ## Maintenance (when LinkedIn changes the DOM)
 Class names are hashed and rotate, so the parser keys off **semantic anchors only**
 (`[role="listitem"]`, `aria-label`, `a[href*="/in/"]`, the "Current:" text). If results stop
-parsing, the `SELECTORS` section of `content.js` is the single place to adjust. Use
-`window.__aplScan()` / `window.__aplStore` in DevTools to debug.
+parsing, fix `parser.js` and update `test/fixtures.js`. Use `window.__aplScan()` /
+`window.__aplStore` in DevTools to debug live.
 
 ## Roadmap
 - **Now:** clipboard + CSV download (works standalone, no backend needed).

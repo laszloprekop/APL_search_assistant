@@ -1,0 +1,12 @@
+{
+  "name": "apl-linkedin-capture",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LinkedIn people-search capture content script for the APL Search Assistant. Tests for the pure parser (parser.js) run under Node + jsdom.",
+  "scripts": {
+    "test": "node --test test/"
+  },
+  "devDependencies": {
+    "jsdom": "^24.1.3"
+  }
+}
