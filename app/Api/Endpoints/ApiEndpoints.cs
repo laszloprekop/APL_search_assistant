@@ -238,14 +238,7 @@ public static class ApiEndpoints
         });
 
         // ---- settings (search provider + key, stored in the local DB) --------
-        api.MapGet("/settings", async (AppDbContext db) =>
-        {
-            var map = await db.Settings.AsNoTracking().ToDictionaryAsync(x => x.Key, x => x.Value);
-            map.TryGetValue("search.provider", out var p);
-            map.TryGetValue("search.apiKey", out var k);
-            map.TryGetValue("search.googleCseId", out var cse);
-            return Results.Ok(new SettingsDto(string.IsNullOrWhiteSpace(p) ? "none" : p, !string.IsNullOrWhiteSpace(k), cse));
-        });
+        api.MapGet("/settings", async (SearchService search) => Results.Ok(await search.GetSettingsAsync()));
 
         api.MapPut("/settings", async (AppDbContext db, SettingsUpdateDto dto) =>
         {

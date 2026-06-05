@@ -105,6 +105,9 @@ export interface Settings {
   searchProvider: SearchProvider;
   searchHasApiKey: boolean;
   searchGoogleCseId?: string | null;
+  providerFromEnv: boolean;
+  apiKeyFromEnv: boolean;
+  cseIdFromEnv: boolean;
 }
 
 export interface SettingsUpdate {

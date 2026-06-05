@@ -55,6 +55,24 @@ git-ignored DB. Searches use the **company name only** (never a person's name). 
 expanded row, **Find website** lists ranked candidates; clicking one sets it and runs enrichment.
 allabolag is kept manual (Cloudflare; PRD §11).
 
+### Storing the API key securely
+The service reads keys with this precedence: **env / .NET user-secrets first, the local DB
+as fallback.** The raw key is never returned to the browser or logged.
+
+- **Recommended — .NET user-secrets** (lives in `~/.microsoft/usersecrets/…`, outside the repo,
+  can't be committed):
+  ```
+  cd app/Api
+  dotnet user-secrets set "Search:Provider" "brave"
+  dotnet user-secrets set "Search:ApiKey"  "<your-brave-key>"
+  # Google also: dotnet user-secrets set "Search:GoogleCseId" "<cx>"
+  ```
+- **Or an environment variable:** `Search__ApiKey=<key>` (double underscore).
+- **Or the UI** (⚙ Settings) — convenient, but stored plaintext in the git-ignored `apl.db`.
+
+When a value comes from env/user-secrets, the Settings panel shows it as **locked** (it
+overrides the UI). Restart the API after changing user-secrets/env.
+
 The extension's **Copy JSON** output pastes straight into the app's **Import capture** panel.
 
 ## Notes

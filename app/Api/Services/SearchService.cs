@@ -18,6 +18,7 @@ public class SearchService
 {
     private readonly IHttpClientFactory _httpFactory;
     private readonly AppDbContext _db;
+    private readonly IConfiguration _config;
     private readonly ILogger<SearchService> _log;
 
     // Aggregators / socials / directories that aren't the company's own site.
@@ -28,10 +29,11 @@ public class SearchService
         "glassdoor.", "bloomberg.", "crunchbase.", "blocket.", "google.", "facebook.com",
     };
 
-    public SearchService(IHttpClientFactory httpFactory, AppDbContext db, ILogger<SearchService> log)
+    public SearchService(IHttpClientFactory httpFactory, AppDbContext db, IConfiguration config, ILogger<SearchService> log)
     {
         _httpFactory = httpFactory;
         _db = db;
+        _config = config;
         _log = log;
     }
 
@@ -39,6 +41,15 @@ public class SearchService
     {
         var s = await LoadAsync();
         return (s.Provider, IsConfigured(s));
+    }
+
+    /// <summary>Settings view for the UI: never returns the raw key, just whether one is set
+    /// and whether each value is managed via env/user-secrets (so the UI can lock those fields).</summary>
+    public async Task<SettingsDto> GetSettingsAsync()
+    {
+        var s = await LoadAsync();
+        return new SettingsDto(s.Provider, !string.IsNullOrWhiteSpace(s.ApiKey), s.GoogleCseId,
+            s.ProviderFromEnv, s.KeyFromEnv, s.CseFromEnv);
     }
 
     public async Task<FindWebsiteResponse> FindWebsiteAsync(Company c)
@@ -61,17 +72,27 @@ public class SearchService
         }
     }
 
-    // ---- config ----
-    private record Cfg(string Provider, string? ApiKey, string? GoogleCseId);
+    // ---- config: env / user-secrets take precedence over the local DB (PRD §10) ----
+    private record Cfg(string Provider, string? ApiKey, string? GoogleCseId,
+        bool ProviderFromEnv, bool KeyFromEnv, bool CseFromEnv);
 
     private async Task<Cfg> LoadAsync()
     {
         var map = await _db.Settings.AsNoTracking().ToDictionaryAsync(x => x.Key, x => x.Value);
-        map.TryGetValue("search.provider", out var p);
-        map.TryGetValue("search.apiKey", out var k);
-        map.TryGetValue("search.googleCseId", out var cse);
-        return new(string.IsNullOrWhiteSpace(p) ? "none" : p.ToLowerInvariant(), k, cse);
+        string? Db(string k) => map.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v) ? v : null;
+        string? Env(string k) => string.IsNullOrWhiteSpace(_config[k]) ? null : _config[k];
+
+        var (provider, provEnv) = Resolve(Env("Search:Provider"), Db("search.provider"));
+        var (apiKey, keyEnv) = Resolve(Env("Search:ApiKey"), Db("search.apiKey"));
+        var (cse, cseEnv) = Resolve(Env("Search:GoogleCseId"), Db("search.googleCseId"));
+
+        return new(string.IsNullOrWhiteSpace(provider) ? "none" : provider!.ToLowerInvariant(),
+            apiKey, cse, provEnv, keyEnv, cseEnv);
     }
+
+    // Env/user-secrets win; report whether the value came from there (so the UI can lock it).
+    private static (string?, bool) Resolve(string? fromEnv, string? fromDb) =>
+        fromEnv is not null ? (fromEnv, true) : (fromDb, false);
 
     private static bool IsConfigured(Cfg s) =>
         s.Provider != "none"

@@ -16,17 +16,25 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
   const [cseId, setCseId] = useState("");
   const [hasKey, setHasKey] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [providerLocked, setProviderLocked] = useState(false);
+  const [keyLocked, setKeyLocked] = useState(false);
+  const [cseLocked, setCseLocked] = useState(false);
 
   useEffect(() => {
     api.getSettings().then((s) => {
       setProvider(s.searchProvider);
       setHasKey(s.searchHasApiKey);
       setCseId(s.searchGoogleCseId ?? "");
+      setProviderLocked(s.providerFromEnv);
+      setKeyLocked(s.apiKeyFromEnv);
+      setCseLocked(s.cseIdFromEnv);
     });
   }, []);
 
+  const anyLocked = providerLocked || keyLocked || cseLocked;
+
   const meta = PROVIDERS.find((p) => p.value === provider)!;
-  const field = "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none";
+  const field = "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400";
 
   const save = async () => {
     const dto: { searchProvider: string; searchGoogleCseId: string | null; searchApiKey?: string } = {
@@ -55,7 +63,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="text-xs text-slate-500">
           Provider
-          <select value={provider} onChange={(e) => setProvider(e.target.value as SearchProvider)} className={field}>
+          <select value={provider} onChange={(e) => setProvider(e.target.value as SearchProvider)} disabled={providerLocked} className={field}>
             {PROVIDERS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
           </select>
         </label>
@@ -67,7 +75,8 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
               type="password"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
-              placeholder={hasKey ? "•••••••• (leave blank to keep)" : "paste API key"}
+              disabled={keyLocked}
+              placeholder={keyLocked ? "set via env / user-secrets" : hasKey ? "•••••••• (leave blank to keep)" : "paste API key"}
               className={field}
             />
           </label>
@@ -76,11 +85,16 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
         {provider === "google" && (
           <label className="text-xs text-slate-500 sm:col-span-2">
             Search-Engine ID (cx)
-            <input value={cseId} onChange={(e) => setCseId(e.target.value)} placeholder="e.g. 0123456789abc:xyz" className={field} />
+            <input value={cseId} onChange={(e) => setCseId(e.target.value)} disabled={cseLocked} placeholder="e.g. 0123456789abc:xyz" className={field} />
           </label>
         )}
       </div>
 
+      {anyLocked && (
+        <p className="mt-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+          <Icon name="lock" /> Managed via user-secrets / environment — locked fields override the UI.
+        </p>
+      )}
       <p className="mt-2 text-xs text-slate-400">
         {meta.help}{" "}
         {meta.keyUrl && <a href={meta.keyUrl} target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline">Get a key →</a>}
