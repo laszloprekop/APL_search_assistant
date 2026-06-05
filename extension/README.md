@@ -23,12 +23,18 @@ currently viewing** into a CSV/JSON, to seed your APL contact list. Implements t
 
 ## Use
 1. Run your Boolean search on LinkedIn; let the results render.
-2. Click **Capture visible** — it grabs the cards on screen (deduped by profile handle).
-3. Scroll down to load more / go to the next page, click **Capture** again to accumulate.
-4. Export and paste into `Deliverable.local/lexicon_list.csv`:
+2. Click **Capture visible** — it grabs the cards on screen, **deduped by profile handle**.
+3. **Accumulate across pages.** Scroll for more, or click LinkedIn's **Next** and capture again.
+   Captures are persisted to `chrome.storage.local`, so they survive the page reload and the
+   lists **append** (the same person is never stored twice).
+4. **Send to APL Assistant** — POSTs everything to the local app (`/api/companies/import`,
+   port 5099). Requires the API running; the server also dedupes by handle, so re-sending is
+   safe. You'll see `N companies, M persons (K dupes skipped)`.
+5. Or export to `Deliverable.local/lexicon_list.csv`:
    - **Copy CSV** / **Download CSV** — includes the header row (use for a fresh file).
    - **Copy rows** — header-less, for appending to a CSV that already has a header.
    - **Copy JSON** — the richer record (incl. `company_confidence`, `raw_current`).
+6. **Clear all** wipes the accumulated set (and storage) when you start a new campaign.
 
 ## Output (CSV schema)
 Columns match `Deliverable/lexicon_list.csv` so captures append straight into your ≥15 list.
@@ -95,7 +101,11 @@ parsing, fix `parser.js` and update `test/fixtures.js`. Use `window.__aplScan()`
 `window.__aplStore` in DevTools to debug live.
 
 ## Roadmap
-- **Now:** clipboard + CSV download (works standalone, no backend needed).
-- **After app M1:** add a "Send to APL Assistant" button that POSTs records to the local
-  ASP.NET API (`http://localhost:5xxx`) so captures land directly in the SQLite DB.
+- **Done:** clipboard + CSV export; cross-page accumulation (persisted, deduped);
+  **Send to APL Assistant** → `POST http://localhost:5099/api/companies/import`.
 - Optional: a company-first capture mode for allabolag result pages.
+
+## Permissions
+- `storage` — to persist captures across result-page navigations.
+- `host_permissions: http://localhost:5099/*` — to send to the local app.
+The only network call is to `localhost`; nothing leaves your machine otherwise.

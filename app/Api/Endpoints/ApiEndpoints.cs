@@ -135,6 +135,14 @@ public static class ApiEndpoints
             var touched = new List<Guid>();
             var companies = await db.Companies.Include(c => c.Persons).ToListAsync();
 
+            // Global dedupe set: a LinkedIn person (by handle) is captured at most once,
+            // even across re-imports, overlapping pages, or different parsed company names.
+            var seenHandles = new HashSet<string>(
+                companies.SelectMany(c => c.Persons)
+                    .Where(p => !string.IsNullOrWhiteSpace(p.LinkedInHandle))
+                    .Select(p => p.LinkedInHandle!),
+                StringComparer.OrdinalIgnoreCase);
+
             foreach (var r in rows)
             {
                 var coName = string.IsNullOrWhiteSpace(r.Company) ? "(okänt företag)" : r.Company.Trim();
@@ -154,16 +162,25 @@ public static class ApiEndpoints
                 }
 
                 var handle = string.IsNullOrWhiteSpace(r.Handle) ? null : r.Handle.Trim();
-                var isDuplicate = handle is not null && company.Persons.Any(p => p.LinkedInHandle == handle);
-                if (!isDuplicate && !string.IsNullOrWhiteSpace(r.Name))
+                var name = r.Name?.Trim();
+
+                // Duplicate if the handle is already known globally, or (no handle) the same
+                // name already sits on this company.
+                var isDuplicate = handle is not null
+                    ? seenHandles.Contains(handle)
+                    : !string.IsNullOrWhiteSpace(name)
+                        && company.Persons.Any(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                if (!isDuplicate && !string.IsNullOrWhiteSpace(name))
                 {
                     company.Persons.Add(new Person
                     {
-                        Name = r.Name.Trim(),
+                        Name = name,
                         Title = r.Title,
                         LinkedInUrl = r.Linkedin_url,
                         LinkedInHandle = handle,
                     });
+                    if (handle is not null) seenHandles.Add(handle);
                     personsAdded++;
                 }
                 else if (isDuplicate) skipped++;

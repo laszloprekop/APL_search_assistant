@@ -1,11 +1,16 @@
-// APL Search Assistant — LinkedIn people-search capture (UI + exporters).
+// APL Search Assistant — LinkedIn people-search capture (UI + exporters + send).
 //
 // Parsing logic lives in parser.js (loaded first via the manifest) and is exposed as the
-// global APLParser. This file only handles the on-page panel, the capture store, and export.
+// global APLParser. This file handles the on-page panel, the capture store, persistence,
+// CSV/JSON export, and sending to the local app.
 //
 // Philosophy: assisted, user-initiated capture (PRD §6.1). You browse LinkedIn yourself and
 // click "Capture" to grab the results CURRENTLY rendered. No auto-scroll, no auto-pagination,
 // no background fetching. Manual trigger only.
+//
+// Cross-page accumulation: LinkedIn paginates by navigating (the content script reloads), so
+// the store is persisted to chrome.storage.local and re-hydrated on load. That lets you
+// capture page 1, click Next, capture page 2, and have the lists APPEND (deduped by handle).
 
 (function () {
   if (window.__aplCaptureLoaded) return;
@@ -14,6 +19,9 @@
   const P = globalThis.APLParser;
   if (!P) { console.error("[APL] parser.js failed to load"); return; }
 
+  const API_BASE = "http://localhost:5099"; // the ASP.NET Core dev server
+  const STORAGE_KEY = "apl_captures";
+
   // Output schema = Deliverable/lexicon_list.csv columns, so captures append into your ≥15 list.
   const LEX_COLS = [
     "foretag", "org_nr", "ort", "lan", "antal_anstallda", "ekonomi_note",
@@ -21,7 +29,19 @@
     "kontaktkalla", "status",
   ];
 
-  const store = new Map(); // handle -> record (dedupe across scrolls/pages)
+  const store = new Map(); // handle -> record (deduped, persisted across pages)
+
+  // -------------------------------------------------------------- persistence -
+  function persist() {
+    try { chrome.storage?.local?.set({ [STORAGE_KEY]: [...store.values()] }); } catch { /* ignore */ }
+  }
+  async function hydrate() {
+    try {
+      const data = await chrome.storage?.local?.get(STORAGE_KEY);
+      const arr = data?.[STORAGE_KEY];
+      if (Array.isArray(arr)) for (const r of arr) if (r?.handle) store.set(r.handle, r);
+    } catch { /* ignore */ }
+  }
 
   function scan() {
     const recs = P.scanDocument(document);
@@ -29,6 +49,7 @@
     for (const rec of recs) {
       if (rec && rec.handle && !store.has(rec.handle)) { store.set(rec.handle, rec); added++; }
     }
+    if (added) persist();
     return { added, parsed: recs.length };
   }
 
@@ -74,12 +95,41 @@
     }
   }
 
+  // -------------------------------------------------- send to the local app ---
+  async function sendToApp(btn) {
+    const rows = [...store.values()];
+    if (rows.length === 0) { status("Nothing captured yet.", "warn"); return; }
+    flash(btn, "Sending…");
+    try {
+      const res = await fetch(API_BASE + "/api/companies/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(rows),
+      });
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+      const r = await res.json();
+      status(`Sent → ${r.companiesCreated} companies, ${r.personsAdded} persons (${r.duplicatesSkipped} dupes skipped).`, "ok");
+      flash(btn, "Sent ✓");
+    } catch (e) {
+      status(`Send failed — is the app running on ${API_BASE}? (${e})`, "err");
+      flash(btn, "Failed");
+    }
+  }
+
   // -------------------------------------------------------------------- UI ----
-  let countEl, previewEl;
+  let countEl, previewEl, statusEl;
 
   function flash(btn, msg) {
-    const old = btn.textContent; btn.textContent = msg;
-    setTimeout(() => (btn.textContent = old), 1300);
+    const old = btn.dataset.label || btn.textContent;
+    btn.dataset.label = old;
+    btn.textContent = msg;
+    setTimeout(() => { btn.textContent = btn.dataset.label; }, 1400);
+  }
+
+  function status(msg, kind) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.dataset.kind = kind || "";
   }
 
   const esc = (s) => (s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -101,7 +151,7 @@
     sh.innerHTML = `
       <style>
         * { box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
-        .panel { width: 300px; background:#fff; color:#1d2226; border:1px solid #d0d5dd;
+        .panel { width: 312px; background:#fff; color:#1d2226; border:1px solid #d0d5dd;
           border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.22); overflow:hidden; }
         .hd { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#0a66c2; color:#fff; }
         .hd b { font-size:13px; } .hd .c { margin-left:auto; font-size:12px; opacity:.9; }
@@ -110,11 +160,16 @@
         button { font-size:12px; padding:7px 8px; border:1px solid #d0d5dd; border-radius:6px;
           background:#f3f6f8; cursor:pointer; } button:hover { background:#e9eef2; }
         button.primary { grid-column:1/3; background:#0a66c2; color:#fff; border-color:#0a66c2; font-weight:600; }
+        button.send { grid-column:1/3; background:#057642; color:#fff; border-color:#057642; font-weight:600; }
         button.ghost { background:#fff; }
-        .preview { margin-top:8px; max-height:168px; overflow:auto; border-top:1px solid #eef1f3; padding-top:6px; }
+        button.wide { grid-column:1/3; }
+        .preview { margin-top:8px; max-height:150px; overflow:auto; border-top:1px solid #eef1f3; padding-top:6px; }
         .row { font-size:12px; padding:4px 0; border-bottom:1px solid #f3f4f6; }
         .sub { color:#5e6b74; font-size:11px; } i { color:#b54708; }
-        .note { font-size:10px; color:#8a939b; margin-top:8px; line-height:1.35; }
+        .status { margin-top:8px; font-size:11px; line-height:1.35; min-height:14px; color:#5e6b74; }
+        .status[data-kind="ok"] { color:#057642; } .status[data-kind="err"] { color:#b42318; }
+        .status[data-kind="warn"] { color:#b54708; }
+        .note { font-size:10px; color:#8a939b; margin-top:6px; line-height:1.35; }
         .min { cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; padding:0 2px; }
         .collapsed .body { display:none; }
       </style>
@@ -126,29 +181,33 @@
         <div class="body">
           <div class="grid">
             <button class="primary" id="cap">Capture visible</button>
+            <button class="send" id="send">Send to APL Assistant</button>
             <button id="csv">Copy CSV</button>
             <button id="rows">Copy rows</button>
             <button id="json" class="ghost">Copy JSON</button>
             <button id="dl" class="ghost">Download CSV</button>
-            <button id="clr" class="ghost">Clear</button>
+            <button id="clr" class="ghost wide">Clear all</button>
           </div>
+          <div class="status" id="status"></div>
           <div class="preview" id="preview"></div>
-          <div class="note">Manual capture of the results on screen. Scroll to load more,
-            click Capture again to add. “Copy rows” omits the header for appending.</div>
+          <div class="note">Captures accumulate across result pages — capture page 1, click
+            LinkedIn’s Next, capture page 2, and they append (deduped). Manual trigger only.</div>
         </div>
       </div>`;
     document.documentElement.appendChild(host);
 
     countEl = sh.getElementById("count");
     previewEl = sh.getElementById("preview");
+    statusEl = sh.getElementById("status");
     const $ = (id) => sh.getElementById(id);
 
     $("cap").onclick = (e) => { const r = scan(); refresh(); flash(e.target, `+${r.added} (${r.parsed} parsed)`); };
+    $("send").onclick = (e) => sendToApp(e.target);
     $("csv").onclick = (e) => copy(toLexCsv(true), e.target);
     $("rows").onclick = (e) => copy(toLexCsv(false), e.target);
     $("json").onclick = (e) => copy(toJson(), e.target);
     $("dl").onclick = () => download(`apl_linkedin_${Date.now()}.csv`, toLexCsv(true), "text/csv");
-    $("clr").onclick = (e) => { store.clear(); refresh(); flash(e.target, "Cleared"); };
+    $("clr").onclick = (e) => { store.clear(); persist(); refresh(); status(""); flash(e.target, "Cleared"); };
     $("min").onclick = () => $("panel").classList.toggle("collapsed");
 
     refresh();
@@ -158,4 +217,6 @@
   window.__aplStore = store;
 
   buildPanel();
+  // Re-hydrate persisted captures from previous pages, then reflect the running total.
+  hydrate().then(refresh);
 })();
