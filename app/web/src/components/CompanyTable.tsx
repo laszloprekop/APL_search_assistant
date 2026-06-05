@@ -71,7 +71,15 @@ export function CompanyTable({
                           title="Open LinkedIn company page">
                           {c.name}
                         </a>
-                      ) : c.name}
+                      ) : (
+                        <a
+                          href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(c.name)}`}
+                          target="_blank" rel="noreferrer"
+                          className="decoration-dotted underline-offset-2 hover:text-[#0a66c2] hover:underline"
+                          title="Search this company on LinkedIn (capture its page to save the exact URL)">
+                          {c.name}
+                        </a>
+                      )}
                     </div>
                     <div className="text-xs text-slate-400">
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
