@@ -42,6 +42,14 @@ public class Person
     public string? Notes { get; set; }
 }
 
+/// <summary>Key/value app config (PRD §9). Holds the chosen search provider + API key,
+/// stored in the local git-ignored DB so it never gets committed.</summary>
+public class Setting
+{
+    public string Key { get; set; } = "";
+    public string Value { get; set; } = "";
+}
+
 /// <summary>An email or phone for the company. "Ready for the Lexicon list" needs both.</summary>
 public class ContactInfo
 {

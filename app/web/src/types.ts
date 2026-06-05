@@ -98,3 +98,36 @@ export interface EnrichResponse {
   error?: string | null;
   message: string;
 }
+
+export type SearchProvider = "none" | "brave" | "google" | "serper";
+
+export interface Settings {
+  searchProvider: SearchProvider;
+  searchHasApiKey: boolean;
+  searchGoogleCseId?: string | null;
+}
+
+export interface SettingsUpdate {
+  searchProvider?: string;
+  searchApiKey?: string;
+  searchGoogleCseId?: string | null;
+}
+
+export interface SearchStatus {
+  provider: string;
+  configured: boolean;
+}
+
+export interface WebsiteCandidate {
+  url: string;
+  title: string;
+  snippet: string;
+  score: number;
+  reason: string;
+}
+
+export interface FindWebsiteResponse {
+  query: string;
+  candidates: WebsiteCandidate[];
+  error?: string | null;
+}

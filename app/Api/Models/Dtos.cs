@@ -39,3 +39,9 @@ public record StatsDto(int Total, int ReadyForList, int Target, Dictionary<strin
 
 public record EnrichRequest(string? Website);
 public record EnrichResponse(CompanyDto Company, bool Ok, int ContactsFound, string? Error, string Message);
+
+// Search-to-website (PRD §6.2 enhancement). Provider chosen at runtime in Settings.
+public record WebsiteCandidate(string Url, string Title, string Snippet, int Score, string Reason);
+public record FindWebsiteResponse(string Query, List<WebsiteCandidate> Candidates, string? Error);
+public record SettingsDto(string SearchProvider, bool SearchHasApiKey, string? SearchGoogleCseId);
+public record SettingsUpdateDto(string? SearchProvider, string? SearchApiKey, string? SearchGoogleCseId);

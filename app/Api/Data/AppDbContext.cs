@@ -10,6 +10,7 @@ public class AppDbContext : DbContext
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<ContactInfo> Contacts => Set<ContactInfo>();
+    public DbSet<Setting> Settings => Set<Setting>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -44,6 +45,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.Name).IsRequired();
             e.HasIndex(x => x.LinkedInHandle);
         });
+
+        b.Entity<Setting>().HasKey(x => x.Key);
 
         b.Entity<ContactInfo>(e =>
         {

@@ -41,7 +41,19 @@ npm run dev        # http://localhost:5173
 | POST | `/api/companies/{id}/contacts` · `/persons` | add nested |
 | DELETE | `/api/contacts/{id}` · `/api/persons/{id}` | remove nested |
 | POST | `/api/companies/import` | bulk import from the LinkedIn extension (dedupe by handle) |
+| POST | `/api/companies/{id}/enrich` | fetch the company website → email/phone/site text (M2) |
+| POST | `/api/companies/{id}/find-website` | search by company name → ranked site candidates (M3) |
+| GET/PUT | `/api/settings` | search provider + API key (stored in the local DB) |
+| GET | `/api/search/status` | which provider is active + whether it's configured |
 | GET | `/api/stats` | totals + `readyForList` counter + stage breakdown |
+
+## Website search (M3, optional)
+To auto-find company websites, open **Settings** (⚙ in the header) and pick a provider —
+**Brave** (free ~2k/mo), **Google Programmable Search** (free 100/day, needs an API key + cx),
+or **Serper.dev** (paid Google proxy) — and paste its API key. Keys live only in the local,
+git-ignored DB. Searches use the **company name only** (never a person's name). In a company's
+expanded row, **Find website** lists ranked candidates; clicking one sets it and runs enrichment.
+allabolag is kept manual (Cloudflare; PRD §11).
 
 The extension's **Copy JSON** output pastes straight into the app's **Import capture** panel.
 

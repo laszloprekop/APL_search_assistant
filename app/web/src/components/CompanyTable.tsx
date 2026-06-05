@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import type {
   Company, CompanyStage, CompanyUpdate, Contact, ContactType, ContactSource, EnrichResponse,
+  FindWebsiteResponse, WebsiteCandidate,
 } from "../types";
 import { Icon, STAGES, stageMeta, sourceIcon, enrichmentMeta } from "../lib/ui";
 
@@ -12,10 +13,11 @@ interface Props {
   onDeleteContact: (id: string) => void;
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
+  onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
 }
 
 export function CompanyTable({
-  companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields,
+  companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite,
 }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -123,7 +125,7 @@ export function CompanyTable({
                   <tr className="bg-slate-50/50">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
-                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} />
+                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} />
                     </td>
                   </tr>
                 )}
@@ -137,13 +139,14 @@ export function CompanyTable({
 }
 
 function ExpandedRow({
-  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields,
+  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite,
 }: {
   c: Company;
   onAddContact: (companyId: string, contact: Contact) => void;
   onDeleteContact: (id: string) => void;
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
+  onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
 }) {
   const [type, setType] = useState<ContactType>("Email");
   const [value, setValue] = useState("");
@@ -218,17 +221,18 @@ function ExpandedRow({
         </div>
       </div>
       </div>
-      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} />
+      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} />
     </div>
   );
 }
 
 function EnrichmentSection({
-  c, onEnrich, onUpdateFields,
+  c, onEnrich, onUpdateFields, onFindWebsite,
 }: {
   c: Company;
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
+  onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
 }) {
   const [website, setWebsite] = useState(c.website ?? "");
   const [orgNumber, setOrgNumber] = useState(c.orgNumber ?? "");
@@ -239,6 +243,26 @@ function EnrichmentSection({
   const [financialNote, setFinancialNote] = useState(c.financialNote ?? "");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const [cands, setCands] = useState<WebsiteCandidate[] | null>(null);
+  const [searchMsg, setSearchMsg] = useState<string | null>(null);
+
+  const find = async () => {
+    setBusy(true); setSearchMsg(null); setCands(null);
+    try {
+      const r = await onFindWebsite(c);
+      if (r.error) setSearchMsg(r.error);
+      else if (r.candidates.length === 0) setSearchMsg(`No candidates for "${r.query}".`);
+      else setCands(r.candidates);
+    } catch (e) { setSearchMsg(String(e)); }
+    finally { setBusy(false); }
+  };
+
+  const pick = async (url: string) => {
+    setWebsite(url); setCands(null); setBusy(true); setMsg(null);
+    try { setMsg((await onEnrich(c, url)).message); }
+    catch (e) { setMsg(String(e)); }
+    finally { setBusy(false); }
+  };
 
   const em = enrichmentMeta(c.enrichmentStatus);
   const inp = "w-full rounded border border-slate-200 px-2 py-1 text-xs";
@@ -275,11 +299,32 @@ function EnrichmentSection({
         <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
           <Icon name={em.icon} /> {em.label}
         </span>
-        <button onClick={auto} disabled={busy}
-          className="ml-auto inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-          <Icon name="web" /> {busy ? "Fetching…" : "Auto-enrich from website"}
-        </button>
+        <div className="ml-auto flex gap-1.5">
+          <button onClick={find} disabled={busy}
+            className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
+            <Icon name="magnify" /> Find website
+          </button>
+          <button onClick={auto} disabled={busy}
+            className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
+            <Icon name="web" /> {busy ? "Fetching…" : "Auto-enrich from website"}
+          </button>
+        </div>
       </div>
+      {searchMsg && <p className="mb-2 text-xs text-amber-600">{searchMsg}</p>}
+      {cands && cands.length > 0 && (
+        <div className="mb-2 space-y-1">
+          <p className="text-[11px] text-slate-400">Pick the official site (sets it + enriches):</p>
+          {cands.map((cand) => (
+            <button key={cand.url} onClick={() => pick(cand.url)}
+              className="flex w-full items-center gap-2 rounded border border-slate-200 px-2 py-1 text-left text-xs hover:bg-slate-50">
+              <Icon name="open-in-new" className="text-slate-400" />
+              <span className="font-medium text-indigo-600">{cand.url.replace(/^https?:\/\//, "")}</span>
+              <span className="truncate text-slate-400">{cand.title}</span>
+              {cand.reason && <span className="ml-auto shrink-0 text-[10px] text-emerald-600">{cand.reason}</span>}
+            </button>
+          ))}
+        </div>
+      )}
       {msg && <p className="mb-2 text-xs text-slate-500">{msg}</p>}
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-slate-500 sm:col-span-3">Website

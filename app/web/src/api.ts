@@ -1,5 +1,6 @@
 import type {
-  Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, ImportResult, Stats,
+  Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindWebsiteResponse,
+  ImportResult, SearchStatus, Settings, SettingsUpdate, Stats,
 } from "./types";
 
 const BASE = "/api";
@@ -50,6 +51,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ website: website ?? null }),
     }),
+
+  findWebsite: (id: string) =>
+    http<FindWebsiteResponse>(`/companies/${id}/find-website`, { method: "POST" }),
+
+  getSettings: () => http<Settings>("/settings"),
+  putSettings: (dto: SettingsUpdate) =>
+    http<void>("/settings", { method: "PUT", body: JSON.stringify(dto) }),
+  searchStatus: () => http<SearchStatus>("/search/status"),
 };
 
 // Build a full update DTO from a company, overriding some fields.

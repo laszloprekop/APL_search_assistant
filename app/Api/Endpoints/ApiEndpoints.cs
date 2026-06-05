@@ -237,6 +237,43 @@ public static class ApiEndpoints
             return Results.Ok(new EnrichResponse(ToDto(c), r.Ok, r.Contacts.Count, r.Error, msg));
         });
 
+        // ---- settings (search provider + key, stored in the local DB) --------
+        api.MapGet("/settings", async (AppDbContext db) =>
+        {
+            var map = await db.Settings.AsNoTracking().ToDictionaryAsync(x => x.Key, x => x.Value);
+            map.TryGetValue("search.provider", out var p);
+            map.TryGetValue("search.apiKey", out var k);
+            map.TryGetValue("search.googleCseId", out var cse);
+            return Results.Ok(new SettingsDto(string.IsNullOrWhiteSpace(p) ? "none" : p, !string.IsNullOrWhiteSpace(k), cse));
+        });
+
+        api.MapPut("/settings", async (AppDbContext db, SettingsUpdateDto dto) =>
+        {
+            async Task Set(string key, string value)
+            {
+                var e = await db.Settings.FindAsync(key);
+                if (e is null) db.Settings.Add(new Setting { Key = key, Value = value });
+                else e.Value = value;
+            }
+            if (dto.SearchProvider is not null) await Set("search.provider", dto.SearchProvider.ToLowerInvariant());
+            if (dto.SearchApiKey is not null) await Set("search.apiKey", dto.SearchApiKey); // "" clears; omit (null) keeps existing
+            if (dto.SearchGoogleCseId is not null) await Set("search.googleCseId", dto.SearchGoogleCseId);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
+        api.MapGet("/search/status", async (SearchService search) =>
+        {
+            var (provider, configured) = await search.StatusAsync();
+            return Results.Ok(new { provider, configured });
+        });
+
+        api.MapPost("/companies/{id:guid}/find-website", async (AppDbContext db, SearchService search, Guid id) =>
+        {
+            var c = await db.Companies.FindAsync(id);
+            return c is null ? Results.NotFound() : Results.Ok(await search.FindWebsiteAsync(c));
+        });
+
         // ---- stats: counter toward the ≥15 list (PRD §6.3) -------------------
         api.MapGet("/stats", async (AppDbContext db) =>
         {

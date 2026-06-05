@@ -18,6 +18,10 @@ builder.Services.AddHttpClient<EnrichmentService>(c =>
     c.DefaultRequestHeaders.Accept.ParseAdd("text/html");
 });
 
+// Default HTTP client + provider-agnostic search service (find company website, PRD §6.2).
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<SearchService>();
+
 // Serialize enums as strings (matches the DB representation and the extension JSON).
 builder.Services.ConfigureHttpJsonOptions(o =>
     o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
