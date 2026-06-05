@@ -41,6 +41,7 @@ function App() {
   const updateFields = async (c: Company, over: Partial<CompanyUpdate>) => { await api.updateCompany(c.id, toUpdate(c, over)); load(); };
   const enrich = async (c: Company, website?: string) => { const r = await api.enrich(c.id, website); load(); return r; };
   const findWebsite = (c: Company) => api.findWebsite(c.id);
+  const findLinkedin = async (c: Company) => { const r = await api.findLinkedin(c.id); load(); return r; };
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-800">
@@ -105,6 +106,7 @@ function App() {
           onEnrich={enrich}
           onUpdateFields={updateFields}
           onFindWebsite={findWebsite}
+          onFindLinkedin={findLinkedin}
         />
       </div>
     </div>

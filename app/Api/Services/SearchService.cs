@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Api.Data;
 using Api.Models;
 using Microsoft.EntityFrameworkCore;
@@ -30,8 +31,12 @@ public class SearchService
         "allabolag.", "ratsit.", "hitta.", "eniro.", "merinfo.", "proff.", "bolagsfakta.",
         "largestcompanies.", "cylex", "bizzdo.", "ppettider", "xn--",
         "industritorget.", "bolag.org", "uochd.",
-        // PR / newswire (not the company's own site)
-        "cision.", "mynewsdesk.", "newsdesk.",
+        // job boards / recruitment (mention the company, aren't its site)
+        "vakanser.", "talentify.", "webbjobb.", "academicwork.", "ledigajobb", "umealedigajobb.",
+        "karriarforetagen.", "jobbsafari.", "monster.", "metajobb.", "thelocal.", "jobland.",
+        "jobbland.", "offert", "jobtip.", "snagajob.",
+        // news / PR / IR (not the company's own site)
+        "cision.", "mynewsdesk.", "newsdesk.", "mfn.se", "vk.se", "folkbladet.", "di.se", "breakit.",
         // intl business directories / data brokers
         "wikipedia.", "indeed.", "glassdoor.", "bloomberg.", "crunchbase.", "zoominfo.",
         "apollo.io", "rocketreach.", "dnb.com", "vainu.", "kompass.", "europages.", "blocket.", "google.",
@@ -91,6 +96,39 @@ public class SearchService
         {
             _log.LogWarning("Search failed for {Query}: {Msg}", query, e.Message);
             return new(query, new(), e.Message);
+        }
+    }
+
+    /// <summary>Find the company's canonical LinkedIn page via search (well-indexed), normalized to
+    /// the /about/ tab where the website lives. Rejects slugs that don't match the name (avoids
+    /// linking to a different company). The grind-killer for "person → company About page".</summary>
+    public async Task<string?> FindLinkedInPageAsync(Company c)
+    {
+        var s = await LoadAsync();
+        if (!IsConfigured(s)) return null;
+        var city = CleanCity(c.LocationKommun) ?? CleanCity(c.LocationLan) ?? "";
+        var query = $"{c.Name} {city} linkedin company".Trim();
+        try
+        {
+            var results = await RunAsync(s, query);
+            var tokens = Tokenize(c.Name);
+            foreach (var r in results)
+            {
+                if (!Uri.TryCreate(r.Url, UriKind.Absolute, out var u)) continue;
+                if (!u.Host.Contains("linkedin.com")) continue;
+                var m = Regex.Match(u.AbsolutePath, @"/company/([^/?#]+)", RegexOptions.IgnoreCase);
+                if (!m.Success) continue;
+                var slug = m.Groups[1].Value.ToLowerInvariant();
+                // Only accept a page whose slug echoes the company name — don't link a wrong company.
+                if (tokens.Count > 0 && !tokens.Any(t => slug.Contains(t) || t.Contains(slug))) continue;
+                return $"https://www.linkedin.com/company/{m.Groups[1].Value}/about/";
+            }
+            return null;
+        }
+        catch (Exception e)
+        {
+            _log.LogWarning("LinkedIn-page search failed for {Name}: {Msg}", c.Name, e.Message);
+            return null;
         }
     }
 

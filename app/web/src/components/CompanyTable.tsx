@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
 import type {
   Company, CompanyStage, CompanyUpdate, Contact, ContactType, ContactSource, EnrichResponse,
-  FindWebsiteResponse, WebsiteCandidate,
+  FindLinkedinResponse, FindWebsiteResponse, WebsiteCandidate,
 } from "../types";
 import { Icon, STAGES, stageMeta, sourceIcon, enrichmentMeta } from "../lib/ui";
 
@@ -14,10 +14,11 @@ interface Props {
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
+  onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
 }
 
 export function CompanyTable({
-  companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite,
+  companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
 }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -139,7 +140,7 @@ export function CompanyTable({
                   <tr className="bg-indigo-50/60">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
-                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} />
+                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} />
                     </td>
                   </tr>
                 )}
@@ -153,7 +154,7 @@ export function CompanyTable({
 }
 
 function ExpandedRow({
-  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite,
+  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
 }: {
   c: Company;
   onAddContact: (companyId: string, contact: Contact) => void;
@@ -161,6 +162,7 @@ function ExpandedRow({
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
+  onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
 }) {
   const [type, setType] = useState<ContactType>("Email");
   const [value, setValue] = useState("");
@@ -242,18 +244,19 @@ function ExpandedRow({
         </div>
       </div>
       </div>
-      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} />
+      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} />
     </div>
   );
 }
 
 function EnrichmentSection({
-  c, onEnrich, onUpdateFields, onFindWebsite,
+  c, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
 }: {
   c: Company;
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
+  onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
 }) {
   const [website, setWebsite] = useState(c.website ?? "");
   const [orgNumber, setOrgNumber] = useState(c.orgNumber ?? "");
@@ -270,10 +273,15 @@ function EnrichmentSection({
   const find = async () => {
     setBusy(true); setSearchMsg(null); setCands(null);
     try {
-      const r = await onFindWebsite(c);
-      if (r.error) setSearchMsg(r.error);
-      else if (r.candidates.length === 0) setSearchMsg(`No candidates for "${r.query}".`);
-      else setCands(r.candidates);
+      // Resolve the canonical LinkedIn company page (stores it → name links to /about/) and
+      // search for the website, in one click.
+      const [w, li] = await Promise.all([onFindWebsite(c), onFindLinkedin(c)]);
+      const notes: string[] = [];
+      if (li.linkedInUrl) notes.push("LinkedIn page found — the company name now opens its About page.");
+      if (w.error) notes.push(w.error);
+      else if (w.candidates.length === 0) notes.push(`No website match for "${w.query}" — open the LinkedIn About page to grab it.`);
+      else setCands(w.candidates);
+      setSearchMsg(notes.join(" ") || null);
     } catch (e) { setSearchMsg(String(e)); }
     finally { setBusy(false); }
   };
@@ -323,7 +331,7 @@ function EnrichmentSection({
         <div className="ml-auto flex gap-1.5">
           <button onClick={find} disabled={busy}
             className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50">
-            <Icon name="magnify" /> Find website
+            <Icon name="magnify" /> {busy ? "Searching…" : "Find online"}
           </button>
           <button onClick={auto} disabled={busy}
             className="inline-flex items-center gap-1 rounded bg-emerald-600 px-2 py-1 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50">

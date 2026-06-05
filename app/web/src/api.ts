@@ -1,6 +1,6 @@
 import type {
-  Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindWebsiteResponse,
-  ImportResult, SearchStatus, Settings, SettingsUpdate, Stats,
+  Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
+  FindWebsiteResponse, ImportResult, SearchStatus, Settings, SettingsUpdate, Stats,
 } from "./types";
 
 const BASE = "/api";
@@ -54,6 +54,9 @@ export const api = {
 
   findWebsite: (id: string) =>
     http<FindWebsiteResponse>(`/companies/${id}/find-website`, { method: "POST" }),
+
+  findLinkedin: (id: string) =>
+    http<FindLinkedinResponse>(`/companies/${id}/find-linkedin`, { method: "POST" }),
 
   getSettings: () => http<Settings>("/settings"),
   putSettings: (dto: SettingsUpdate) =>

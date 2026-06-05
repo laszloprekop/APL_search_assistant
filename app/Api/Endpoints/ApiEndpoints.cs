@@ -267,6 +267,16 @@ public static class ApiEndpoints
             return c is null ? Results.NotFound() : Results.Ok(await search.FindWebsiteAsync(c));
         });
 
+        // Resolve the canonical LinkedIn company page via search and store it (links name → /about/).
+        api.MapPost("/companies/{id:guid}/find-linkedin", async (AppDbContext db, SearchService search, Guid id) =>
+        {
+            var c = await db.Companies.FindAsync(id);
+            if (c is null) return Results.NotFound();
+            var url = await search.FindLinkedInPageAsync(c);
+            if (url is not null) { c.LinkedInUrl = url; c.UpdatedAt = DateTimeOffset.UtcNow; await db.SaveChangesAsync(); }
+            return Results.Ok(new { linkedInUrl = url });
+        });
+
         // ---- company-page capture from the extension (LinkedIn About, PRD §6.1) ----
         api.MapPost("/companies/upsert", async (AppDbContext db, List<CompanyImportRow> rows) =>
         {

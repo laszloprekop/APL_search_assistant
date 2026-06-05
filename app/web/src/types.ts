@@ -136,3 +136,7 @@ export interface FindWebsiteResponse {
   candidates: WebsiteCandidate[];
   error?: string | null;
 }
+
+export interface FindLinkedinResponse {
+  linkedInUrl: string | null;
+}
