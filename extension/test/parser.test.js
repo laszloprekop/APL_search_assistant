@@ -120,3 +120,47 @@ test("parseCompanyPage tolerates a missing website / About section", () => {
   assert.equal(r.website, null);
   assert.equal(r.industry, null);
 });
+
+// --- JSON-LD (schema.org) — the robust primary path --------------------------
+function ld(json, extra = "") {
+  return `<script type="application/ld+json">${JSON.stringify(json)}</script>${extra}`;
+}
+
+test("organizationFromJsonLd reads website (url) + size + HQ, skipping a LinkedIn url", () => {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${ld({
+    "@type": "Organization", name: "twoday Sweden", url: "https://www.twoday.se",
+    numberOfEmployees: { "@type": "QuantitativeValue", value: 1200 },
+    address: { "@type": "PostalAddress", addressLocality: "Umeå", addressRegion: "Västerbotten" },
+  })}</body>`);
+  const o = P.organizationFromJsonLd(dom.window.document);
+  assert.equal(o.website, "https://www.twoday.se");
+  assert.equal(o.companySize, "1200");
+  assert.equal(o.headquarters, "Umeå, Västerbotten");
+});
+
+test("parseCompanyPage prefers JSON-LD over the DOM and marks the source", () => {
+  // DOM has a decoy external link; JSON-LD has the real website → JSON-LD wins.
+  const r = parseCompany(ld(
+    { "@graph": [{ "@type": "Organization", name: "COS Systems", url: "https://www.cossystems.com" }] },
+    `<h1>cos systems (dom)</h1><a href="https://decoy-aggregator.se">x</a>`
+  ));
+  assert.equal(r.name, "COS Systems");
+  assert.equal(r.website, "https://www.cossystems.com");
+  assert.equal(r._source, "json-ld");
+});
+
+test("organizationFromJsonLd falls back to a Person's worksFor company", () => {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${ld({
+    "@type": "Person", name: "Daniel H.",
+    worksFor: [{ "@type": "Organization", name: "twoday", url: "https://twoday.se" }],
+  })}</body>`);
+  const o = P.organizationFromJsonLd(dom.window.document);
+  assert.equal(o.name, "twoday");
+  assert.equal(o.website, "https://twoday.se");
+});
+
+test("parseCompanyPage falls back to DOM when there's no JSON-LD", () => {
+  const r = parseCompany(`<h1>XLENT</h1><a href="https://www.xlent.se/about" target="_blank">site</a>`);
+  assert.equal(r.website, "https://www.xlent.se");
+  assert.equal(r._source, "dom");
+});

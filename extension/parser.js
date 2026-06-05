@@ -182,6 +182,54 @@
     return out;
   }
 
+  // ---- JSON-LD (schema.org) — robust to LinkedIn's CSS-class churn -----------
+  function jsonLdNodes(doc) {
+    const out = [];
+    for (const s of doc.querySelectorAll('script[type="application/ld+json"]')) {
+      let data;
+      try { data = JSON.parse(s.textContent || ""); } catch { continue; }
+      const items = Array.isArray(data) ? data : (data["@graph"] ? data["@graph"] : [data]);
+      for (const it of items) if (it && typeof it === "object") out.push(it);
+    }
+    return out;
+  }
+
+  function typeIs(node, t) {
+    const ty = node && node["@type"];
+    return Array.isArray(ty) ? ty.includes(t) : ty === t;
+  }
+
+  // Pull a company Organization out of JSON-LD (direct, or via a Person's worksFor).
+  function organizationFromJsonLd(doc) {
+    const nodes = jsonLdNodes(doc);
+    let org = nodes.find((n) => typeIs(n, "Organization"));
+    if (!org) {
+      const person = nodes.find((n) => typeIs(n, "Person"));
+      const w = person && (Array.isArray(person.worksFor) ? person.worksFor[0] : person.worksFor);
+      if (w && typeof w === "object") org = w;
+    }
+    if (!org) return null;
+
+    // org.url is normally the external website; skip it if it's a LinkedIn URL.
+    let website = typeof org.url === "string" ? org.url : null;
+    if (website && /linkedin\.com/i.test(website)) website = null;
+    if (!website && Array.isArray(org.sameAs)) website = org.sameAs.find((u) => isExternal(u)) || null;
+
+    const num = org.numberOfEmployees;
+    const employees = num && typeof num === "object" ? (num.value || num.minValue || null) : (num || null);
+    const addr = org.address;
+    const hq = addr && typeof addr === "object"
+      ? [addr.addressLocality, addr.addressRegion].filter(Boolean).join(", ") || null
+      : null;
+
+    return {
+      name: typeof org.name === "string" ? clean(org.name) : null,
+      website: website ? rootUrl(website) : null,
+      companySize: employees ? String(employees) : null,
+      headquarters: hq,
+    };
+  }
+
   function companyLinkedInUrl(doc) {
     const href = (typeof location !== "undefined" && location.href) ||
       doc.querySelector('link[rel="canonical"]')?.getAttribute("href") || "";
@@ -190,26 +238,30 @@
   }
 
   // Parse the currently-open LinkedIn company page into a CompanyImportRow shape.
+  // JSON-LD (schema.org Organization) is the primary source — stable across LinkedIn's CSS
+  // churn — with the DOM heuristic as a per-field fallback.
   function parseCompanyPage(doc) {
     const d = doc || (typeof document !== "undefined" ? document : null);
     if (!d) return null;
-    const h1 = d.querySelector("h1");
-    const name = h1 ? clean(h1.textContent) : "";
+    const ld = organizationFromJsonLd(d) || {};
     const about = extractAboutFields(d);
+    const h1 = d.querySelector("h1");
+
     return {
-      name,
-      website: extractWebsite(d),
-      industry: about.industry || null,
-      companySize: about.companySize || null,
-      headquarters: about.headquarters || null,
+      name: ld.name || (h1 ? clean(h1.textContent) : ""),
+      website: ld.website || extractWebsite(d),
+      industry: about.industry || null, // industry isn't in LinkedIn's JSON-LD
+      companySize: ld.companySize || about.companySize || null,
+      headquarters: ld.headquarters || about.headquarters || null,
       linkedinUrl: companyLinkedInUrl(d),
+      _source: ld.website ? "json-ld" : "dom", // for debugging which path produced the website
     };
   }
 
   const API = {
     clean, cleanProfileUrl, handleFromUrl, lanFromLocation,
     parseCompany, parseCard, scanDocument,
-    unwrapRedirect, extractWebsite, parseCompanyPage,
+    unwrapRedirect, extractWebsite, parseCompanyPage, organizationFromJsonLd,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;
