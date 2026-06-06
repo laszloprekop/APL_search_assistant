@@ -5,7 +5,7 @@ export type CompanyStage =
   | "ClosedPositive" | "ClosedNegative";
 export type CompanySource = "LinkedIn" | "Allabolag" | "Manual";
 export type EnrichmentStatus = "Pending" | "Enriched" | "NeedsManualLookup";
-export type ContactType = "Email" | "Phone";
+export type ContactType = "Email" | "Phone" | "LinkedIn";
 export type ContactSource = "Website" | "Switchboard" | "LinkedIn" | "Manual" | "Guessed";
 export type Confidence = "High" | "Medium" | "Low";
 export type OutreachStatus = "NotContacted" | "Contacted" | "Replied" | "Bounced" | "Closed";

@@ -231,82 +231,108 @@ function ExpandedRow({
     finally { setPBusy(null); }
   };
 
+  const field = "mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-xs";
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-2">
-      <div>
-        <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
-          <Icon name="account-multiple" /> Persons
-        </h4>
-        {c.persons.length === 0 && <p className="text-xs text-slate-400">None</p>}
-        <ul className="space-y-2">
-          {c.persons.map((p) => (
-            <li key={p.id} className="text-sm">
-              <div className="flex items-center gap-1.5">
-                <Icon name="linkedin" className="shrink-0 text-[#0a66c2]" title="LinkedIn profile" />
-                {p.linkedInUrl ? (
-                  <a href={p.linkedInUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{p.name}</a>
-                ) : <span className="font-medium text-slate-700">{p.name}</span>}
-                {p.title && <span className="truncate text-xs text-slate-400">· {p.title}</span>}
-                <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
-                  title={c.website ? "Look up this person's contact on the company website" : "Find the company website first (step 1)"}
-                  className="ml-auto inline-flex shrink-0 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-40">
-                  <Icon name="account-search" /> {pBusy === p.id ? "…" : "Find contact"}
-                </button>
-              </div>
-              <ul className="ml-5 mt-1 space-y-1">
-                {(p.contacts ?? []).map((ct) => (
-                  <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
-                ))}
-              </ul>
-            </li>
-          ))}
-        </ul>
-        {pMsg && <p className="mt-1.5 text-[11px] text-slate-500">{pMsg}</p>}
-      </div>
+      {/* Enrichment sits above the contacts. */}
+      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} autoRun={autoRun} onAutoRan={onAutoRan} />
 
-      <div>
-        <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
-          <Icon name="card-account-mail" /> Company contacts <span className="font-normal normal-case text-slate-300">generic</span>
-        </h4>
-        <ul className="mb-2 space-y-1">
-          {c.contacts.map((ct) => (
-            <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
-          ))}
-          {c.contacts.length === 0 && <li className="text-xs text-slate-400">None</li>}
-        </ul>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <select value={type} onChange={(e) => setType(e.target.value as ContactType)} className="rounded border border-slate-200 px-1.5 py-1 text-xs">
-            <option value="Email">Email</option>
-            <option value="Phone">Phone</option>
-          </select>
-          <input
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={type === "Email" ? "kontakt@…" : "0920-…"}
-            className="grow rounded border border-slate-200 px-2 py-1 text-xs"
-          />
-          <select value={source} onChange={(e) => setSource(e.target.value as ContactSource)} className="rounded border border-slate-200 px-1.5 py-1 text-xs">
-            <option value="Website">Website</option>
-            <option value="Switchboard">Switchboard</option>
-            <option value="LinkedIn">LinkedIn</option>
-            <option value="Manual">Manual</option>
-          </select>
-          {c.persons.length > 0 && (
-            <select value={owner} onChange={(e) => setOwner(e.target.value)} className="rounded border border-slate-200 px-1.5 py-1 text-xs"
-              title="Whose contact is this? (blank = generic company contact)">
-              <option value="">Company (generic)</option>
-              {c.persons.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-          )}
-          <button onClick={submit} className="rounded bg-indigo-600 px-2 py-1 text-xs font-medium text-white hover:bg-indigo-700">
-            <Icon name="plus" /> Add
-          </button>
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Left: add a contact point (labelled, stacked). */}
+        <div>
+          <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+            <Icon name="plus-circle-outline" /> Add a contact point
+          </h4>
+          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+            {c.persons.length > 0 && (
+              <label className="block text-[11px] font-medium text-slate-500">
+                Belongs to
+                <select value={owner} onChange={(e) => setOwner(e.target.value)} className={field}>
+                  <option value="">Company (generic)</option>
+                  {c.persons.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+            )}
+            <label className="block text-[11px] font-medium text-slate-500">
+              Type
+              <select value={type} onChange={(e) => setType(e.target.value as ContactType)} className={field}>
+                <option value="Email">Email</option>
+                <option value="Phone">Phone</option>
+              </select>
+            </label>
+            <label className="block text-[11px] font-medium text-slate-500">
+              {type === "Email" ? "Email address" : "Phone number"}
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder={type === "Email" ? "kontakt@…" : "0920-…"}
+                className={field}
+              />
+            </label>
+            <label className="block text-[11px] font-medium text-slate-500">
+              Source
+              <select value={source} onChange={(e) => setSource(e.target.value as ContactSource)} className={field}>
+                <option value="Website">Website</option>
+                <option value="Switchboard">Switchboard</option>
+                <option value="LinkedIn">LinkedIn</option>
+                <option value="Manual">Manual</option>
+              </select>
+            </label>
+            <button onClick={submit} className="w-full rounded bg-indigo-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
+              <Icon name="plus" /> Add contact point
+            </button>
+          </div>
+        </div>
+
+        {/* Right: one merged list, grouped by Persons + generic company contact points. */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+              <Icon name="account-multiple" /> Persons
+            </h4>
+            {c.persons.length === 0 && <p className="text-xs text-slate-400">None</p>}
+            <ul className="space-y-2">
+              {c.persons.map((p) => (
+                <li key={p.id} className="text-sm">
+                  <div className="flex items-center gap-1.5">
+                    <Icon name="account" className="shrink-0 text-slate-400" />
+                    {p.linkedInUrl ? (
+                      <a href={p.linkedInUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{p.name}</a>
+                    ) : <span className="font-medium text-slate-700">{p.name}</span>}
+                    {p.title && <span className="truncate text-xs text-slate-400">· {p.title}</span>}
+                    <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
+                      title={c.website ? "Look up this person's email/phone on the company website" : "Find the company website first (step 1)"}
+                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-40">
+                      <Icon name="account-search" /> {pBusy === p.id ? "…" : "Find contact"}
+                    </button>
+                  </div>
+                  <ul className="ml-5 mt-1 space-y-1">
+                    {(p.contacts ?? []).map((ct) => (
+                      <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
+                    ))}
+                    {(p.contacts ?? []).length === 0 && <li className="text-xs text-slate-300">No contact points yet</li>}
+                  </ul>
+                </li>
+              ))}
+            </ul>
+            {pMsg && <p className="mt-1.5 text-[11px] text-slate-500">{pMsg}</p>}
+          </div>
+
+          <div>
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+              <Icon name="card-account-mail" /> Company contact points <span className="font-normal normal-case text-slate-300">generic</span>
+            </h4>
+            <ul className="space-y-1">
+              {c.contacts.map((ct) => (
+                <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
+              ))}
+              {c.contacts.length === 0 && <li className="text-xs text-slate-400">None</li>}
+            </ul>
+          </div>
         </div>
       </div>
-      </div>
-      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} autoRun={autoRun} onAutoRan={onAutoRan} />
     </div>
   );
 }
@@ -510,21 +536,31 @@ const OUTREACH: { value: OutreachStatus; label: string; cls: string }[] = [
 ];
 const outreachCls = (s?: OutreachStatus) => OUTREACH.find((o) => o.value === s)?.cls ?? OUTREACH[0].cls;
 
-// One email/phone — a trackable reach-out entity. Used for both person and generic contacts.
+// One contact point (email / phone / LinkedIn) — a trackable reach-out entity. Used for both
+// person-attributed and generic company points.
 function ContactRow({ ct, onSetStatus, onDelete }: {
   ct: Contact;
   onSetStatus: (id: string, status: OutreachStatus) => void;
   onDelete: (id: string) => void;
 }) {
   const guessed = ct.source === "Guessed";
+  const isLinkedIn = ct.type === "LinkedIn";
+  const icon = ct.type === "Email" ? "email" : ct.type === "Phone" ? "phone" : "linkedin";
   return (
     <li className="flex items-center gap-2 text-sm">
-      <Icon name={ct.type === "Email" ? "email" : "phone"} className={guessed ? "shrink-0 text-amber-500" : "shrink-0 text-slate-400"} />
-      <span data-noexpand className={`cursor-text break-all ${guessed ? "text-amber-700" : "text-slate-700"}`}>{ct.value}</span>
+      <Icon name={icon} className={isLinkedIn ? "shrink-0 text-[#0a66c2]" : guessed ? "shrink-0 text-amber-500" : "shrink-0 text-slate-400"} />
+      {isLinkedIn ? (
+        <a href={ct.value} target="_blank" rel="noreferrer" title={ct.value}
+          className="break-all text-indigo-600 hover:underline">
+          {ct.value.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "") || ct.value}
+        </a>
+      ) : (
+        <span data-noexpand className={`cursor-text break-all ${guessed ? "text-amber-700" : "text-slate-700"}`}>{ct.value}</span>
+      )}
       {guessed ? (
         <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
-          title="Generic pattern — unverified. Call to confirm; not counted toward the ≥15 list.">guessed · verify</span>
-      ) : ct.sourceUrl ? (
+          title="Generic pattern — unverified. Call to confirm; not counted toward the ≥15 list.">guessed</span>
+      ) : isLinkedIn ? null : ct.sourceUrl ? (
         <a href={ct.sourceUrl} target="_blank" rel="noreferrer"
           className="shrink-0 text-xs text-indigo-500 hover:underline" title={`Extracted from ${ct.sourceUrl}`}>
           ({ct.source} <Icon name="open-in-new" className="text-[10px]" />)

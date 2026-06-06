@@ -32,6 +32,7 @@ public enum ContactType
 {
     Email,
     Phone,
+    LinkedIn, // a person's LinkedIn profile URL — a trackable reach-out point like email/phone
 }
 
 public enum ContactSource

@@ -1,5 +1,6 @@
 using Api.Data;
 using Api.Endpoints;
+using Api.Models;
 using Api.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -37,7 +38,27 @@ var app = builder.Build();
 
 // Apply migrations on startup so cloning + run = working DB (PRD: ship schema, not data).
 using (var scope = app.Services.CreateScope())
-    scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.Migrate();
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+
+    // A person's LinkedIn profile is a trackable contact point. Backfill a LinkedIn ContactInfo
+    // for any person who has a URL but no such point yet (idempotent across restarts).
+    var persons = db.Persons.Include(p => p.Contacts).ToList();
+    var added = 0;
+    foreach (var p in persons)
+    {
+        if (string.IsNullOrWhiteSpace(p.LinkedInUrl)) continue;
+        if (p.Contacts.Any(x => x.Type == ContactType.LinkedIn)) continue;
+        db.Contacts.Add(new ContactInfo
+        {
+            CompanyId = p.CompanyId, PersonId = p.Id, Type = ContactType.LinkedIn,
+            Value = p.LinkedInUrl!.Trim(), Source = ContactSource.LinkedIn,
+        });
+        added++;
+    }
+    if (added > 0) db.SaveChanges();
+}
 
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();

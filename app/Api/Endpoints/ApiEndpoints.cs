@@ -152,6 +152,13 @@ public static class ApiEndpoints
         {
             var ci = await db.Contacts.FindAsync(id);
             if (ci is null) return Results.NotFound();
+            // Deleting a person's LinkedIn point also clears the denormalized URL so the header
+            // link stays in sync (the handle is kept so capture import still dedupes them).
+            if (ci.Type == ContactType.LinkedIn && ci.PersonId is { } pid)
+            {
+                var p = await db.Persons.FindAsync(pid);
+                if (p is not null) p.LinkedInUrl = null;
+            }
             db.Contacts.Remove(ci);
             await db.SaveChangesAsync();
             return Results.NoContent();
@@ -221,13 +228,21 @@ public static class ApiEndpoints
 
                 if (!isDuplicate && !string.IsNullOrWhiteSpace(name))
                 {
-                    company.Persons.Add(new Person
+                    var person = new Person
                     {
                         Name = name,
                         Title = r.Title,
                         LinkedInUrl = r.Linkedin_url,
                         LinkedInHandle = handle,
-                    });
+                    };
+                    company.Persons.Add(person);
+                    // The profile URL is itself a trackable reach-out point (default NotContacted).
+                    if (!string.IsNullOrWhiteSpace(r.Linkedin_url))
+                        company.Contacts.Add(new ContactInfo
+                        {
+                            CompanyId = company.Id, PersonId = person.Id, Type = ContactType.LinkedIn,
+                            Value = r.Linkedin_url!.Trim(), Source = ContactSource.LinkedIn,
+                        });
                     if (handle is not null) seenHandles.Add(handle);
                     personsAdded++;
                 }
