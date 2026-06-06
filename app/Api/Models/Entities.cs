@@ -41,6 +41,8 @@ public class Person
     public string? LinkedInUrl { get; set; }
     public string? LinkedInHandle { get; set; } // used to dedupe on capture import
     public string? Notes { get; set; }
+
+    public List<ContactInfo> Contacts { get; set; } = new(); // this person's own email/phone
 }
 
 /// <summary>Key/value app config (PRD §9). Holds the chosen search provider + API key,
@@ -51,16 +53,25 @@ public class Setting
     public string Value { get; set; } = "";
 }
 
-/// <summary>An email or phone for the company. "Ready for the Lexicon list" needs both.</summary>
+/// <summary>An email or phone — a trackable "reach-out" entity (PRD §6.3). Belongs to the
+/// company (generic, e.g. info@) or to a specific Person (PersonId set). "Ready for the
+/// Lexicon list" needs both a usable email and phone on the company (guessed excluded).</summary>
 public class ContactInfo
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public Guid CompanyId { get; set; }
     public Company? Company { get; set; }
 
+    public Guid? PersonId { get; set; } // null = generic company contact; set = belongs to a person
+    public Person? Person { get; set; }
+
     public ContactType Type { get; set; }
     public string Value { get; set; } = "";
     public ContactSource Source { get; set; } = ContactSource.Manual;
     public Confidence? Confidence { get; set; }
     public string? SourceUrl { get; set; } // exact page the value was extracted from
+
+    // Reach-out tracking, per contact.
+    public OutreachStatus OutreachStatus { get; set; } = OutreachStatus.NotContacted;
+    public DateTimeOffset? LastContactedAt { get; set; }
 }

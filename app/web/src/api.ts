@@ -1,6 +1,6 @@
 import type {
   Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
-  FindWebsiteResponse, ImportResult, SearchStatus, Settings, SettingsUpdate, Stats,
+  FindWebsiteResponse, ImportResult, OutreachStatus, SearchStatus, Settings, SettingsUpdate, Stats,
 } from "./types";
 
 const BASE = "/api";
@@ -42,6 +42,12 @@ export const api = {
 
   deleteContact: (id: string) =>
     http<void>(`/contacts/${id}`, { method: "DELETE" }),
+
+  setContactStatus: (id: string, status: OutreachStatus) =>
+    http<Company>(`/contacts/${id}/status`, { method: "PATCH", body: JSON.stringify({ outreachStatus: status }) }),
+
+  enrichPerson: (personId: string) =>
+    http<EnrichResponse>(`/persons/${personId}/enrich`, { method: "POST" }),
 
   importCapture: (rows: unknown[]) =>
     http<ImportResult>("/companies/import", { method: "POST", body: JSON.stringify(rows) }),

@@ -62,7 +62,7 @@ public static class ApiEndpoints
             foreach (var p in dto.Persons ?? new())
                 c.Persons.Add(new Person { Name = p.Name, Title = p.Title, LinkedInUrl = p.LinkedInUrl, LinkedInHandle = p.LinkedInHandle, Notes = p.Notes });
             foreach (var ci in dto.Contacts ?? new())
-                c.Contacts.Add(new ContactInfo { Type = ci.Type, Value = ci.Value, Source = ci.Source, Confidence = ci.Confidence });
+                c.Contacts.Add(new ContactInfo { Type = ci.Type, Value = ci.Value, Source = ci.Source, Confidence = ci.Confidence, SourceUrl = ci.SourceUrl, OutreachStatus = ci.OutreachStatus });
 
             db.Companies.Add(c);
             await db.SaveChangesAsync();
@@ -114,10 +114,29 @@ public static class ApiEndpoints
             var c = await Load(db, id);
             if (c is null) return Results.NotFound();
             if (string.IsNullOrWhiteSpace(dto.Value)) return Results.BadRequest("Value is required.");
-            c.Contacts.Add(new ContactInfo { Type = dto.Type, Value = dto.Value.Trim(), Source = dto.Source, Confidence = dto.Confidence });
+            // PersonId is honoured only if that person belongs to this company.
+            var personId = dto.PersonId is { } pid && c.Persons.Any(p => p.Id == pid) ? pid : (Guid?)null;
+            c.Contacts.Add(new ContactInfo
+            {
+                Type = dto.Type, Value = dto.Value.Trim(), Source = dto.Source, Confidence = dto.Confidence,
+                SourceUrl = dto.SourceUrl, PersonId = personId, OutreachStatus = dto.OutreachStatus,
+            });
             c.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
             return Results.Ok(ToDto(c));
+        });
+
+        // Per-contact reach-out status (PRD §6.3). Stamps LastContactedAt when moving off NotContacted.
+        api.MapPatch("/contacts/{id:guid}/status", async (AppDbContext db, Guid id, ContactStatusUpdateDto dto) =>
+        {
+            var ci = await db.Contacts.FindAsync(id);
+            if (ci is null) return Results.NotFound();
+            ci.OutreachStatus = dto.OutreachStatus;
+            if (dto.OutreachStatus is OutreachStatus.Contacted or OutreachStatus.Replied && ci.LastContactedAt is null)
+                ci.LastContactedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            var c = await Load(db, ci.CompanyId);
+            return Results.Ok(ToDto(c!));
         });
 
         api.MapDelete("/persons/{id:guid}", async (AppDbContext db, Guid id) =>
@@ -254,8 +273,10 @@ public static class ApiEndpoints
                 if (!string.IsNullOrWhiteSpace(r.SiteText)) c.SiteTextRaw = r.SiteText;
                 foreach (var hit in r.Contacts)
                 {
-                    if (!c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase)))
-                        c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence, SourceUrl = hit.SourceUrl });
+                    if (c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase))) continue;
+                    // Attribute to a person when the value encodes / sits beside their name; else generic.
+                    var pid = AttributeToPerson(hit.Type, hit.Value, c.Persons, r.SiteText);
+                    c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence, SourceUrl = hit.SourceUrl, PersonId = pid });
                 }
             }
 
@@ -327,6 +348,47 @@ public static class ApiEndpoints
             await db.SaveChangesAsync();
             var msg = $"Applied allabolag data to {c.Name}." + (phoneAdded ? " Added switchboard phone." : "");
             return Results.Ok(new AllabolagApplyResult(ToDto(c), phoneAdded, msg));
+        });
+
+        // ---- person-level enrichment: find THIS person's contact on the company site ----
+        api.MapPost("/persons/{id:guid}/enrich", async (AppDbContext db, EnrichmentService svc, Guid id) =>
+        {
+            var p = await db.Persons
+                .Include(x => x.Company!).ThenInclude(co => co.Contacts)
+                .Include(x => x.Company!).ThenInclude(co => co.Persons)
+                .FirstOrDefaultAsync(x => x.Id == id);
+            if (p is null || p.Company is null) return Results.NotFound();
+            var c = p.Company;
+
+            string? siteText = c.SiteTextRaw;
+            var hits = new List<ContactHit>();
+            var url = c.Website;
+            if (!string.IsNullOrWhiteSpace(url))
+            {
+                if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase)) url = "https://" + url;
+                var r = await svc.EnrichWebsiteAsync(url);
+                if (r.Ok)
+                {
+                    hits = r.Contacts;
+                    if (!string.IsNullOrWhiteSpace(r.SiteText)) { siteText = r.SiteText; c.SiteTextRaw = r.SiteText; }
+                }
+            }
+
+            int added = 0;
+            foreach (var hit in hits)
+            {
+                if (AttributeToPerson(hit.Type, hit.Value, new List<Person> { p }, siteText) != p.Id) continue; // only this person's
+                if (c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase))) continue;
+                c.Contacts.Add(new ContactInfo { CompanyId = c.Id, PersonId = p.Id, Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence, SourceUrl = hit.SourceUrl });
+                added++;
+            }
+            c.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            var msg = string.IsNullOrWhiteSpace(c.Website)
+                ? $"No company website yet — find it first, then look up {p.Name}."
+                : added > 0 ? $"Found {added} contact(s) for {p.Name}."
+                : $"No contact for {p.Name} on the site — try the switchboard.";
+            return Results.Ok(new EnrichResponse(ToDto(c), added > 0, added, null, msg));
         });
 
         // ---- settings (search provider + key, stored in the local DB) --------
@@ -431,6 +493,52 @@ public static class ApiEndpoints
 
     private static bool IsReadyForList(Company c) => HasType(c, ContactType.Email) && HasType(c, ContactType.Phone);
 
+    // Attribute a found contact to a person — never fabricate (user decision). Either the email
+    // local-part encodes their name, or the value sits next to their name in the page text.
+    private static Guid? AttributeToPerson(ContactType type, string value, List<Person> persons, string? siteText)
+    {
+        if (type == ContactType.Email)
+        {
+            var lp = LocalPart(value);
+            foreach (var p in persons) if (EmailLocalMatchesName(lp, p.Name)) return p.Id;
+        }
+        if (!string.IsNullOrWhiteSpace(siteText))
+            foreach (var p in persons) if (NearInText(siteText!, p.Name, value)) return p.Id;
+        return null;
+    }
+
+    private static string LocalPart(string email)
+    {
+        var at = email.IndexOf('@');
+        var lp = at > 0 ? email[..at] : email;
+        return new string(lp.ToLowerInvariant().Where(ch => char.IsLetterOrDigit(ch)).ToArray());
+    }
+
+    private static bool EmailLocalMatchesName(string lp, string name)
+    {
+        var parts = name.ToLowerInvariant()
+            .Split(new[] { ' ', '\t', '.', '-' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(w => new string(w.Where(char.IsLetterOrDigit).ToArray()))
+            .Where(w => w.Length >= 2).ToList();
+        if (parts.Count == 0 || lp.Length < 4) return false;
+        var first = parts[0]; var last = parts[^1];
+        var hasLast = last.Length >= 3 && lp.Contains(last);
+        var hasFirst = first.Length >= 3 && lp.Contains(first);
+        if (hasLast && (hasFirst || lp.StartsWith(first[..1]))) return true; // donjanssen / djanssen / janssend
+        if (hasFirst && hasLast) return true;
+        return false;
+    }
+
+    private static bool NearInText(string text, string name, string value, int window = 120)
+    {
+        var iName = text.IndexOf(name, StringComparison.OrdinalIgnoreCase);
+        var iVal = text.IndexOf(value, StringComparison.OrdinalIgnoreCase);
+        return iName >= 0 && iVal >= 0 && Math.Abs(iName - iVal) <= window;
+    }
+
+    private static ContactDto ToContactDto(ContactInfo x) =>
+        new(x.Id, x.Type, x.Value, x.Source, x.Confidence, x.SourceUrl, x.PersonId, x.OutreachStatus, x.LastContactedAt);
+
     private static CompanyDto ToDto(Company c)
     {
         var hasEmail = HasType(c, ContactType.Email);
@@ -441,7 +549,10 @@ public static class ApiEndpoints
             c.RevenueBand, c.EmployeeCount, c.FinancialNote, c.TechStackGuess, c.Notes,
             hasEmail, hasPhone, hasEmail && hasPhone,
             c.CreatedAt, c.UpdatedAt, c.EnrichedAt,
-            c.Persons.Select(p => new PersonDto(p.Id, p.Name, p.Title, p.LinkedInUrl, p.LinkedInHandle, p.Notes)).ToList(),
-            c.Contacts.Select(x => new ContactDto(x.Id, x.Type, x.Value, x.Source, x.Confidence, x.SourceUrl)).ToList());
+            // Each person carries their own attributed contacts; company-level Contacts are the
+            // generic ones (PersonId == null) — info@, switchboard, etc.
+            c.Persons.Select(p => new PersonDto(p.Id, p.Name, p.Title, p.LinkedInUrl, p.LinkedInHandle, p.Notes,
+                c.Contacts.Where(x => x.PersonId == p.Id).Select(ToContactDto).ToList())).ToList(),
+            c.Contacts.Where(x => x.PersonId == null).Select(ToContactDto).ToList());
     }
 }

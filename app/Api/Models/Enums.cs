@@ -49,3 +49,14 @@ public enum Confidence
     Medium,
     Low,
 }
+
+/// <summary>Per-contact outreach state (PRD §6.3). Each email/phone is reached + tracked
+/// independently — it's a "reach-out" entity. Guessed addresses can be marked Bounced.</summary>
+public enum OutreachStatus
+{
+    NotContacted,
+    Contacted,
+    Replied,
+    Bounced,
+    Closed,
+}

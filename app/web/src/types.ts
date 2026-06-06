@@ -8,6 +8,7 @@ export type EnrichmentStatus = "Pending" | "Enriched" | "NeedsManualLookup";
 export type ContactType = "Email" | "Phone";
 export type ContactSource = "Website" | "Switchboard" | "LinkedIn" | "Manual" | "Guessed";
 export type Confidence = "High" | "Medium" | "Low";
+export type OutreachStatus = "NotContacted" | "Contacted" | "Replied" | "Bounced" | "Closed";
 
 export interface Person {
   id?: string;
@@ -16,6 +17,7 @@ export interface Person {
   linkedInUrl?: string | null;
   linkedInHandle?: string | null;
   notes?: string | null;
+  contacts?: Contact[];
 }
 
 export interface Contact {
@@ -25,6 +27,9 @@ export interface Contact {
   source: ContactSource;
   confidence?: Confidence | null;
   sourceUrl?: string | null;
+  personId?: string | null;
+  outreachStatus?: OutreachStatus;
+  lastContactedAt?: string | null;
 }
 
 export interface Company {

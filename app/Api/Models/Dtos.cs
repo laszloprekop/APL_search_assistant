@@ -1,8 +1,13 @@
 namespace Api.Models;
 
-public record PersonDto(Guid? Id, string Name, string? Title, string? LinkedInUrl, string? LinkedInHandle, string? Notes);
+public record PersonDto(Guid? Id, string Name, string? Title, string? LinkedInUrl, string? LinkedInHandle, string? Notes,
+    List<ContactDto>? Contacts = null);
 
-public record ContactDto(Guid? Id, ContactType Type, string Value, ContactSource Source, Confidence? Confidence, string? SourceUrl = null);
+public record ContactDto(Guid? Id, ContactType Type, string Value, ContactSource Source, Confidence? Confidence,
+    string? SourceUrl = null, Guid? PersonId = null,
+    OutreachStatus OutreachStatus = OutreachStatus.NotContacted, DateTimeOffset? LastContactedAt = null);
+
+public record ContactStatusUpdateDto(OutreachStatus OutreachStatus);
 
 public record CompanyCreateDto(
     string Name,

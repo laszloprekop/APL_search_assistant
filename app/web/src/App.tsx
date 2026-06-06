@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import type { Company, CompanyCreate, CompanyStage, CompanyUpdate, Contact, Stats } from "./types";
+import type { Company, CompanyCreate, CompanyStage, CompanyUpdate, Contact, OutreachStatus, Stats } from "./types";
 import { api, toUpdate } from "./api";
 import { Icon, STAGES } from "./lib/ui";
 import { StatsBar } from "./components/StatsBar";
@@ -32,6 +32,20 @@ function App() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-refresh so data the browser extension POSTs shows up without a manual reload:
+  // refetch when the app tab regains focus/visibility, plus a slow backstop poll.
+  useEffect(() => {
+    const refresh = () => { if (!document.hidden) load(); };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", refresh);
+    const t = window.setInterval(refresh, 15000);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", refresh);
+      window.clearInterval(t);
+    };
+  }, [load]);
+
   const createCompany = async (dto: CompanyCreate) => { await api.createCompany(dto); setPanel("none"); load(); };
   const changeStage = async (c: Company, stage: CompanyStage) => { await api.updateCompany(c.id, toUpdate(c, { stage })); load(); };
   const deleteCompany = async (id: string) => { if (confirm("Delete this company?")) { await api.deleteCompany(id); load(); } };
@@ -42,6 +56,8 @@ function App() {
   const enrich = async (c: Company, website?: string) => { const r = await api.enrich(c.id, website); load(); return r; };
   const findWebsite = (c: Company) => api.findWebsite(c.id);
   const findLinkedin = async (c: Company) => { const r = await api.findLinkedin(c.id); load(); return r; };
+  const setContactStatus = async (id: string, status: OutreachStatus) => { await api.setContactStatus(id, status); load(); };
+  const enrichPerson = async (personId: string) => { const r = await api.enrichPerson(personId); load(); return r; };
 
   return (
     <div className="min-h-full bg-slate-50 text-slate-800">
@@ -107,6 +123,8 @@ function App() {
           onUpdateFields={updateFields}
           onFindWebsite={findWebsite}
           onFindLinkedin={findLinkedin}
+          onSetContactStatus={setContactStatus}
+          onEnrichPerson={enrichPerson}
         />
       </div>
     </div>

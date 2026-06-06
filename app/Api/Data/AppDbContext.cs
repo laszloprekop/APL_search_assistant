@@ -54,6 +54,14 @@ public class AppDbContext : DbContext
             e.Property(x => x.Type).HasConversion<string>();
             e.Property(x => x.Source).HasConversion<string>();
             e.Property(x => x.Confidence).HasConversion<string>();
+            e.Property(x => x.OutreachStatus).HasConversion<string>();
+
+            // Optional owner person. Deleting a person detaches its contacts to generic
+            // (SetNull), not delete — we don't want to lose a captured email/phone.
+            e.HasOne(x => x.Person)
+                .WithMany(p => p.Contacts)
+                .HasForeignKey(x => x.PersonId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
     }
 }
