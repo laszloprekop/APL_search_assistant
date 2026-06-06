@@ -227,6 +227,15 @@ public static class ApiEndpoints
             var c = await Load(db, id);
             if (c is null) return Results.NotFound();
 
+            // Self-heal: collapse any duplicate contacts (same type + value, case-insensitive),
+            // keeping the first. Makes enrich idempotent against re-runs / double-submits.
+            var dupes = c.Contacts
+                .GroupBy(x => (x.Type, Value: (x.Value ?? "").Trim().ToLowerInvariant()))
+                .SelectMany(g => g.Skip(1))
+                .ToList();
+            foreach (var d in dupes) c.Contacts.Remove(d);
+            if (dupes.Count > 0) db.RemoveRange(dupes);
+
             var url = !string.IsNullOrWhiteSpace(body?.Website) ? body!.Website!.Trim() : c.Website;
             if (string.IsNullOrWhiteSpace(url))
             {

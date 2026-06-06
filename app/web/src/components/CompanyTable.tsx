@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import type {
   Company, CompanyStage, CompanyUpdate, Contact, ContactType, ContactSource, EnrichResponse,
   FindLinkedinResponse, FindWebsiteResponse, WebsiteCandidate,
@@ -348,9 +348,15 @@ function EnrichmentSection({
     finally { setBusy(false); }
   };
 
-  // Triggered by the collapsed-row "next step" chip: run the right action once on open.
+  // Triggered by the collapsed-row "next step" chip: run the right action exactly once.
+  // The ref guard survives React StrictMode's dev mount→cleanup→mount, which would
+  // otherwise fire two concurrent enrich calls that race past the server-side dedupe.
+  const ranFor = useRef<string | null>(null);
   useEffect(() => {
     if (!autoRun) return;
+    const key = `${c.id}:${autoRun}`;
+    if (ranFor.current === key) return;
+    ranFor.current = key;
     (autoRun === "website" ? find : auto)();
     onAutoRan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
