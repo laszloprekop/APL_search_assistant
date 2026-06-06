@@ -94,7 +94,7 @@ export function CompanyTable({
                   </td>
                   <td className="px-3 py-2 align-top">
                     <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                      <Icon name={sourceIcon(c.source)} className="text-slate-400" title={c.source} />
+                      <Icon name={sourceIcon(c.source)} className={c.source === "LinkedIn" ? "text-[#0a66c2]" : "text-slate-400"} title={c.source} />
                       {c.linkedInUrl ? (
                         <a href={c.linkedInUrl} target="_blank" rel="noreferrer"
                           className="hover:text-[#0a66c2] hover:underline"
@@ -238,9 +238,9 @@ function ExpandedRow({
       {/* Enrichment sits above the contacts. */}
       <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} autoRun={autoRun} onAutoRan={onAutoRan} />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Left: add a contact point (labelled, stacked). */}
-        <div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {/* Left: add a contact point (labelled, stacked) — 1/3 width. */}
+        <div className="md:col-span-1">
           <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
             <Icon name="plus-circle-outline" /> Add a contact point
           </h4>
@@ -296,12 +296,12 @@ function ExpandedRow({
             <ul className="space-y-2">
               {c.persons.map((p) => (
                 <li key={p.id} className="text-sm">
-                  <div className="flex items-center gap-1.5">
-                    <Icon name="account" className="shrink-0 text-slate-400" />
-                    {p.linkedInUrl ? (
-                      <a href={p.linkedInUrl} target="_blank" rel="noreferrer" className="font-medium text-indigo-600 hover:underline">{p.name}</a>
-                    ) : <span className="font-medium text-slate-700">{p.name}</span>}
-                    {p.title && <span className="truncate text-xs text-slate-400">· {p.title}</span>}
+                  <div className="flex items-start gap-1.5">
+                    <Icon name="linkedin" className="mt-0.5 shrink-0 text-[#0a66c2]" title="LinkedIn contact" />
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-700">{p.name}</div>
+                      {p.title && <div className="truncate text-xs text-slate-400">{p.title}</div>}
+                    </div>
                     <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
                       title={c.website ? "Look up this person's email/phone on the company website" : "Find the company website first (step 1)"}
                       className="ml-auto inline-flex shrink-0 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-40">
@@ -438,22 +438,29 @@ function EnrichmentSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRun]);
 
+  // Re-sync the form when the company actually changes server-side — e.g. the extension sends
+  // allabolag data while this row is open and the auto-refresh reloads it. Keyed on updatedAt so
+  // a no-op background poll doesn't clobber in-progress edits (updatedAt only moves on a real change).
+  useEffect(() => {
+    setName(c.name);
+    setWebsite(c.website ?? "");
+    setOrgNumber(c.orgNumber ?? "");
+    setLan(c.locationLan ?? "");
+    setKommun(c.locationKommun ?? "");
+    setRevenueBand(c.revenueBand ?? "");
+    setEmployeeCount(c.employeeCount ?? "");
+    setFinancialNote(c.financialNote ?? "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.updatedAt]);
+
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
-      <div className="mb-2 flex items-center gap-2">
-        <h4 className="flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
-          <Icon name="database-search" /> Enrichment
-        </h4>
-        <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
-          <Icon name={em.icon} /> {em.label}
-        </span>
-        {busy && <span className="ml-auto text-xs text-slate-400">Working…</span>}
-        {/* The step actions live on the company row (StepRow) — no duplicate cluster here. */}
-      </div>
-      {searchMsg && <p className="mb-2 text-xs text-amber-600">{searchMsg}</p>}
+    <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+      {/* Action feedback sits at the top — i.e. directly below the StepRow action buttons. */}
+      {busy && <p className="text-xs text-slate-400">Working…</p>}
+      {searchMsg && <p className="text-xs text-amber-600">{searchMsg}</p>}
       {cands && cands.length > 0 && (
-        <div className="mb-2 space-y-1">
-          <p className="text-[11px] text-slate-400">Click the link to preview, “Use” to set it + enrich:</p>
+        <div className="space-y-1">
+          <p className="text-[11px] text-slate-400">“Use” sets it + enriches; “Discard” drops the suggestion:</p>
           {cands.map((cand) => (
             <div key={cand.url}
               className="flex items-center gap-2 rounded border border-slate-200 px-2 py-1 text-xs">
@@ -465,30 +472,30 @@ function EnrichmentSection({
               <span className="truncate text-slate-400">{cand.title}</span>
               {cand.reason && <span className="ml-auto shrink-0 text-[10px] text-emerald-600">{cand.reason}</span>}
               <button onClick={() => pick(cand.url)}
-                className="shrink-0 rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-700">
+                className={`shrink-0 rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-700 ${cand.reason ? "" : "ml-auto"}`}>
                 Use
+              </button>
+              <button onClick={() => setCands((cs) => (cs ? cs.filter((x) => x.url !== cand.url) : cs))}
+                title="Discard this suggestion"
+                className="shrink-0 rounded border border-slate-200 px-2 py-0.5 text-slate-500 hover:bg-slate-100">
+                Discard
               </button>
             </div>
           ))}
         </div>
       )}
-      {msg && <p className="mb-2 text-xs text-slate-500">{msg}</p>}
-      <div className="grid gap-2 sm:grid-cols-3">
-        <label className="text-[11px] text-slate-500 sm:col-span-3">
-          <span className="flex items-center gap-1">
-            Company name
-            <span className="text-slate-300">— fix mis-scraped names here</span>
-          </span>
+      {msg && <p className="text-xs text-slate-500">{msg}</p>}
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Company name
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company AB" className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500 sm:col-span-3">
+        <label className="text-[11px] text-slate-500 sm:col-span-2">
           <span className="flex items-center gap-1">
             Website
             {c.website && (
               <a href={c.website} target="_blank" rel="noreferrer" title="Open saved website"
-                className="text-indigo-500 hover:underline">
-                <Icon name="open-in-new" /> open
-              </a>
+                className="text-indigo-500 hover:underline"><Icon name="open-in-new" /> open</a>
             )}
           </span>
           <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://…" className={inp} />
@@ -502,24 +509,28 @@ function EnrichmentSection({
         <label className="text-[11px] text-slate-500">Kommun
           <input value={kommun} onChange={(e) => setKommun(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Revenue band
-          <input value={revenueBand} onChange={(e) => setRevenueBand(e.target.value)} className={inp} />
-        </label>
         <label className="text-[11px] text-slate-500">Employees
           <input value={employeeCount} onChange={(e) => setEmployeeCount(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Financial note
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Revenue band
+          <input value={revenueBand} onChange={(e) => setRevenueBand(e.target.value)} className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500 sm:col-span-2">Financial note
           <input value={financialNote} onChange={(e) => setFinancialNote(e.target.value)} className={inp} />
         </label>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
+
+      <div className="flex flex-wrap items-center gap-2">
         <button onClick={save} disabled={!dirty}
           title={dirty ? "Save your edits" : "No changes to save"}
           className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-indigo-600">
           <Icon name="content-save" /> Save fields
         </button>
-        <span className="text-[11px] text-slate-400">
-          {dirty ? "Unsaved changes." : "allabolag (step 3) auto-fills via the extension — or edit any field here and save."}
+        <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
+          <Icon name={em.icon} /> {em.label}
+        </span>
+        <span className="ml-auto text-[11px] text-slate-400">
+          {dirty ? "Unsaved changes." : "allabolag auto-fills via the extension."}
         </span>
       </div>
     </div>
