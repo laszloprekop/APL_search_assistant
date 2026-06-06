@@ -114,16 +114,19 @@ export function CompanyTable({
                     <StepRow c={c} onStep={(k) => startStep(c, k)} />
                   </td>
                   <td className="px-3 py-2 align-top">
-                    {person ? (
+                    {c.persons.length === 0 ? (
+                      <span className="text-slate-300">—</span>
+                    ) : c.persons.length === 1 ? (
+                      // Exactly one → safe to name. Several → a count, not an arbitrary pick.
                       <div data-noexpand className="flex cursor-text items-center gap-1 text-slate-700">
                         {person.linkedInUrl && <Icon name="linkedin" className="text-[#0a66c2]" title="LinkedIn profile" />}
                         <span>{person.name}</span>
-                        {c.persons.length > 1 && (
-                          <span className="text-xs text-slate-400">+{c.persons.length - 1}</span>
-                        )}
                       </div>
                     ) : (
-                      <span className="text-slate-300">—</span>
+                      <span className="inline-flex items-center gap-1 text-slate-500"
+                        title="Several contacts — expand to see them all">
+                        <Icon name="account-multiple" className="text-slate-400" /> {c.persons.length} persons
+                      </span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center align-top">
@@ -511,7 +514,7 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
   const pill = (done: boolean, active: string) =>
-    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : `border ${active}`}`;
+    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-white text-slate-500 hover:bg-slate-200" : `border ${active}`}`;
   const mark = (n: number, done: boolean, dot: string) =>
     done ? <Icon name="refresh" className="text-slate-400" />
       : <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold text-white ${dot}`}>{n}</span>;
@@ -519,20 +522,20 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
       <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
         onClick={(e) => { e.stopPropagation(); onStep("website"); }}
-        className={pill(wDone, "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100")}>
-        {mark(1, wDone, "bg-indigo-600")} Website
+        className={pill(wDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
+        {mark(1, wDone, "bg-emerald-600")} Find Company Website
       </button>
       <Icon name="chevron-right" className="text-slate-300" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
         className={pill(kDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
-        {mark(2, kDone, "bg-emerald-600")} Contacts
+        {mark(2, kDone, "bg-emerald-600")} Scan Company Contacts
       </button>
       <Icon name="chevron-right" className="text-slate-300" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className={pill(oDone, "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100")}>
-        {mark(3, oDone, "bg-teal-600")} allabolag
+        className={pill(oDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
+        {mark(3, oDone, "bg-emerald-600")} Scan Allabolag
       </a>
     </div>
   );
