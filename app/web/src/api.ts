@@ -1,6 +1,7 @@
 import type {
   Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
-  FindWebsiteResponse, ImportResult, OutreachStatus, SearchStatus, Settings, SettingsUpdate, Stats,
+  FindWebsiteResponse, ImportResult, Outreach, OutreachDraft, OutreachDraftRequest, OutreachLogRequest,
+  OutreachSettings, OutreachStatus, SearchStatus, Settings, SettingsUpdate, Stats, Template, TemplateKind,
 } from "./types";
 
 const BASE = "/api";
@@ -68,6 +69,24 @@ export const api = {
   putSettings: (dto: SettingsUpdate) =>
     http<void>("/settings", { method: "PUT", body: JSON.stringify(dto) }),
   searchStatus: () => http<SearchStatus>("/search/status"),
+
+  // ---- M4: templates + outreach ----
+  templates: () => http<Template[]>("/templates"),
+  updateTemplate: (kind: TemplateKind, dto: { subject?: string | null; body?: string | null }) =>
+    http<Template>(`/templates/${kind}`, { method: "PUT", body: JSON.stringify(dto) }),
+
+  getOutreachSettings: () => http<OutreachSettings>("/settings/outreach"),
+  putOutreachSettings: (dto: OutreachSettings) =>
+    http<void>("/settings/outreach", { method: "PUT", body: JSON.stringify(dto) }),
+
+  outreachDraft: (companyId: string, req: OutreachDraftRequest) =>
+    http<OutreachDraft>(`/companies/${companyId}/outreach/draft`, { method: "POST", body: JSON.stringify(req) }),
+  logOutreach: (companyId: string, dto: OutreachLogRequest) =>
+    http<Outreach>(`/companies/${companyId}/outreach`, { method: "POST", body: JSON.stringify(dto) }),
+  outbox: (companyId?: string) =>
+    http<Outreach[]>(`/outreach${companyId ? `?companyId=${companyId}` : ""}`),
+  deleteOutreach: (id: string) =>
+    http<void>(`/outreach/${id}`, { method: "DELETE" }),
 };
 
 // Build a full update DTO from a company, overriding some fields.

@@ -125,6 +125,7 @@ function App() {
           onFindLinkedin={findLinkedin}
           onSetContactStatus={setContactStatus}
           onEnrichPerson={enrichPerson}
+          onRefresh={load}
         />
       </div>
     </div>

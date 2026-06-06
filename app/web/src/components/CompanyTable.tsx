@@ -4,6 +4,7 @@ import type {
   FindLinkedinResponse, FindWebsiteResponse, OutreachStatus, WebsiteCandidate,
 } from "../types";
 import { Icon, STAGES, stageMeta, sourceIcon, enrichmentMeta } from "../lib/ui";
+import { OutreachCard } from "./OutreachCard";
 
 // The #aplc=<id> fragment pins the extension's allabolag capture to THIS app company, so a
 // name mismatch (e.g. "Euroclear" vs "Euroclear Sweden AB") still lands on the right entry.
@@ -22,11 +23,12 @@ interface Props {
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
   onSetContactStatus: (id: string, status: OutreachStatus) => void;
   onEnrichPerson: (personId: string) => Promise<EnrichResponse>;
+  onRefresh: () => void;
 }
 
 export function CompanyTable({
   companies, onChangeStage, onDelete, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
-  onSetContactStatus, onEnrichPerson,
+  onSetContactStatus, onEnrichPerson, onRefresh,
 }: Props) {
   const [open, setOpen] = useState<Set<string>>(new Set());
   const toggle = (id: string) =>
@@ -183,7 +185,7 @@ export function CompanyTable({
                   <tr className="bg-indigo-50/60">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
-                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
+                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
                     </td>
                   </tr>
                 )}
@@ -203,7 +205,7 @@ export function CompanyTable({
 }
 
 function ExpandedRow({
-  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin, onSetContactStatus, onEnrichPerson, autoRun, onAutoRan,
+  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin, onSetContactStatus, onEnrichPerson, onRefresh, autoRun, onAutoRan,
 }: {
   c: Company;
   onAddContact: (companyId: string, contact: Contact) => void;
@@ -214,6 +216,7 @@ function ExpandedRow({
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
   onSetContactStatus: (id: string, status: OutreachStatus) => void;
   onEnrichPerson: (personId: string) => Promise<EnrichResponse>;
+  onRefresh: () => void;
   autoRun: string | null; // `${kind}#${nonce}` from a step click, or null
   onAutoRan: () => void;
 }) {
@@ -339,6 +342,8 @@ function ExpandedRow({
           </div>
         </div>
       </div>
+
+      <OutreachCard company={c} onLogged={onRefresh} />
     </div>
   );
 }

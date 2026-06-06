@@ -128,6 +128,67 @@ export interface SearchStatus {
   configured: boolean;
 }
 
+// ---- M4: templates + 3-channel outreach ----
+export type TemplateKind = "ColdEmail" | "LinkedinInmail" | "CallScript" | "Followup" | "Lexicon";
+export type OutreachChannel = "Email" | "Phone" | "Linkedin";
+export type OutreachKind = "Cold" | "Followup";
+export type OutreachLogStatus = "Drafted" | "Sent" | "Logged";
+
+export interface Template {
+  kind: TemplateKind;
+  subject?: string | null;
+  body: string;
+  updatedAt: string;
+}
+
+export interface OutreachSettings {
+  yourName?: string | null;
+  cvSummary?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedin?: string | null;
+  period?: string | null;
+  area?: string | null;
+}
+
+export interface OutreachDraft {
+  channel: OutreachChannel;
+  to?: string | null;
+  subject?: string | null;
+  body: string;
+}
+
+export interface OutreachDraftRequest {
+  channel: OutreachChannel;
+  kind?: OutreachKind;
+  personId?: string | null;
+}
+
+export interface OutreachLogRequest {
+  channel: OutreachChannel;
+  kind: OutreachKind;
+  personId?: string | null;
+  subject?: string | null;
+  body?: string | null;
+  outcome?: string | null;
+}
+
+export interface Outreach {
+  id: string;
+  companyId: string;
+  companyName: string;
+  personId?: string | null;
+  personName?: string | null;
+  channel: OutreachChannel;
+  kind: OutreachKind;
+  status: OutreachLogStatus;
+  subject?: string | null;
+  body?: string | null;
+  outcome?: string | null;
+  createdAt: string;
+  sentAt?: string | null;
+}
+
 export interface WebsiteCandidate {
   url: string;
   title: string;

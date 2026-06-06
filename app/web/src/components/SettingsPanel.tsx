@@ -20,6 +20,11 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
   const [keyLocked, setKeyLocked] = useState(false);
   const [cseLocked, setCseLocked] = useState(false);
 
+  // "Your details" — feed the {{your_*}} / {{period}} outreach merge fields.
+  const [o, setO] = useState({ yourName: "", cvSummary: "", email: "", phone: "", linkedin: "", period: "", area: "" });
+  const setOField = (k: keyof typeof o) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setO((prev) => ({ ...prev, [k]: e.target.value }));
+
   useEffect(() => {
     api.getSettings().then((s) => {
       setProvider(s.searchProvider);
@@ -29,6 +34,11 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
       setKeyLocked(s.apiKeyFromEnv);
       setCseLocked(s.cseIdFromEnv);
     });
+    api.getOutreachSettings().then((s) =>
+      setO({
+        yourName: s.yourName ?? "", cvSummary: s.cvSummary ?? "", email: s.email ?? "",
+        phone: s.phone ?? "", linkedin: s.linkedin ?? "", period: s.period ?? "", area: s.area ?? "",
+      }));
   }, []);
 
   const anyLocked = providerLocked || keyLocked || cseLocked;
@@ -43,6 +53,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
     };
     if (apiKey.trim()) dto.searchApiKey = apiKey.trim(); // blank = keep existing key
     await api.putSettings(dto);
+    await api.putOutreachSettings(o);
     setApiKey("");
     const s = await api.getSettings();
     setHasKey(s.searchHasApiKey);
@@ -55,7 +66,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
     <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-slate-700">
-          <Icon name="cog" className="text-indigo-500" /> Settings — website search
+          <Icon name="cog" className="text-indigo-500" /> Settings
         </h3>
         <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icon name="close" /></button>
       </div>
@@ -102,6 +113,40 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
       <p className="mt-1 text-[11px] text-slate-400">
         Keys are stored only in your local (git-ignored) database. Searches use the company name only — never a person's name.
       </p>
+
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <h3 className="mb-1 flex items-center gap-1.5 font-semibold text-slate-700">
+          <Icon name="account-edit" className="text-indigo-500" /> Your details (outreach)
+        </h3>
+        <p className="mb-2 text-[11px] text-slate-400">
+          Fill the <code>{"{{your_*}}"}</code> / <code>{"{{period}}"}</code> merge fields in outreach drafts. Local-only.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="text-xs text-slate-500">Your name
+            <input value={o.yourName} onChange={setOField("yourName")} placeholder="Förnamn Efternamn" className={field} />
+          </label>
+          <label className="text-xs text-slate-500">Praktikperiod
+            <input value={o.period} onChange={setOField("period")} placeholder="feb–mar 2026" className={field} />
+          </label>
+          <label className="text-xs text-slate-500">Email (from-address you'll send with)
+            <input value={o.email} onChange={setOField("email")} placeholder="namn@gmail.com" className={field} />
+          </label>
+          <label className="text-xs text-slate-500">Phone
+            <input value={o.phone} onChange={setOField("phone")} placeholder="070-…" className={field} />
+          </label>
+          <label className="text-xs text-slate-500">LinkedIn URL
+            <input value={o.linkedin} onChange={setOField("linkedin")} placeholder="linkedin.com/in/…" className={field} />
+          </label>
+          <label className="text-xs text-slate-500">Your area / background (for the call pitch)
+            <input value={o.area} onChange={setOField("area")} placeholder="backend-utveckling" className={field} />
+          </label>
+          <label className="text-xs text-slate-500 sm:col-span-2">Experience summary <span className="text-slate-300">({"{{your_experience}}"} — one or two sentences from your CV)</span>
+            <textarea value={o.cvSummary} onChange={setOField("cvSummary")} rows={2}
+              placeholder="t.ex. backend i C#/.NET, REST-API:er och SQL…"
+              className={field + " resize-y"} />
+          </label>
+        </div>
+      </div>
 
       <div className="mt-3 flex items-center justify-end gap-2">
         {savedMsg && <span className="text-xs text-emerald-600">{savedMsg}</span>}
