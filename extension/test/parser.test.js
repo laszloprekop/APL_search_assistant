@@ -164,3 +164,25 @@ test("parseCompanyPage falls back to DOM when there's no JSON-LD", () => {
   assert.equal(r.website, "https://www.xlent.se");
   assert.equal(r._source, "dom");
 });
+
+// Real logged-in LinkedIn company About markup (captured from the live page, June 2026):
+// no JSON-LD; website lives in a <dl> as <dt><h3>Website</h3></dt><dd><a href>…</a></dd>.
+test("parseCompanyPage reads the real LinkedIn About <dl> (label <h3> inside <dt>)", () => {
+  const r = parseCompany(`
+    <h1>COS Systems</h1>
+    <dl class="overflow-hidden">
+      <dt class="mb1"><h3 class="text-heading-medium">Website</h3></dt>
+      <dd class="mb4"><a target="_blank" rel="noopener noreferrer" href="http://www.cossystems.com" class="link-without-visited-state ember-view"><span dir="ltr">http://www.cossystems.com</span></a></dd>
+      <dt class="mb1"><h3>Industry</h3></dt>
+      <dd>Telecommunications</dd>
+      <dt class="mb1"><h3>Company size</h3></dt>
+      <dd>11-50 employees</dd>
+      <dt class="mb1"><h3>Headquarters</h3></dt>
+      <dd>Umeå, Västerbotten</dd>
+    </dl>`);
+  assert.equal(r.name, "COS Systems");
+  assert.equal(r.website, "http://www.cossystems.com");
+  assert.equal(r.industry, "Telecommunications");
+  assert.equal(r.companySize, "11-50 employees");
+  assert.equal(r.headquarters, "Umeå, Västerbotten");
+});

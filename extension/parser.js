@@ -144,9 +144,27 @@
     } catch { return false; }
   }
 
-  // Best-effort website from a company About page: prefer a redirect-wrapped link, else the
-  // first external (non-LinkedIn) http link. Returns a clean root URL.
+  // The "Website"/"Webbplats" labelled value in the About <dl> — authoritative on a real
+  // LinkedIn company page: <dt><h3>Website</h3></dt><dd><a href="http://site">…</a></dd>.
+  function websiteFromLabel(doc) {
+    for (const dt of doc.querySelectorAll("dt")) {
+      if (!/^(website|webbplats)$/i.test(clean(dt.textContent))) continue;
+      const dd = dt.nextElementSibling;
+      const a = dd && dd.querySelector("a[href]");
+      if (a) {
+        const href = a.getAttribute("href") || "";
+        return unwrapRedirect(href) || href;
+      }
+    }
+    return null;
+  }
+
+  // Best-effort website from a company About page: the labelled "Website" value first, then a
+  // redirect-wrapped link, then the first external (non-LinkedIn) http link. Clean root URL.
   function extractWebsite(doc) {
+    const labelled = websiteFromLabel(doc);
+    if (labelled && isExternal(labelled)) return rootUrl(labelled);
+
     const anchors = [...doc.querySelectorAll("a[href]")];
     for (const a of anchors) {
       const t = unwrapRedirect(a.getAttribute("href"));

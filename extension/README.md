@@ -115,9 +115,11 @@ company's LinkedIn page and an **APL · Company** panel appears (bottom-right):
    (updates it; creates it if new). The website is LinkedIn's own field, so it's authoritative —
    more reliable than the web-search "Find website" guess, and it fills the few that search misses.
 
-> Heuristic parser: LinkedIn's company-page markup isn't pinned by a captured DOM sample yet,
-> so verify the fields before sending. If a field comes up blank/wrong, grab the page DOM and
-> we'll tighten the selectors (same as the people parser).
+> Parser sourcing: schema.org JSON-LD first when present (logged-out pages), else the rendered
+> DOM. Logged in, LinkedIn emits **no** JSON-LD, so the DOM path is used — validated against the
+> real About `<dl>` markup (`<dt><h3>Website</h3></dt><dd><a href>…</a></dd>`), reading the
+> labelled "Website"/"Webbplats" value plus Industry / Company size / Headquarters. Be on the
+> **About tab** so those fields are present.
 
 ## Permissions
 - `storage` — to persist captures across result-page navigations.
