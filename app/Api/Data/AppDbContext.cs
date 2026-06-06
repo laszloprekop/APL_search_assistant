@@ -11,6 +11,8 @@ public class AppDbContext : DbContext
     public DbSet<Person> Persons => Set<Person>();
     public DbSet<ContactInfo> Contacts => Set<ContactInfo>();
     public DbSet<Setting> Settings => Set<Setting>();
+    public DbSet<Template> Templates => Set<Template>();
+    public DbSet<Outreach> Outreach => Set<Outreach>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -20,6 +22,8 @@ public class AppDbContext : DbContext
         b.Entity<Company>().Property(x => x.Id).ValueGeneratedNever();
         b.Entity<Person>().Property(x => x.Id).ValueGeneratedNever();
         b.Entity<ContactInfo>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<Template>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<Outreach>().Property(x => x.Id).ValueGeneratedNever();
 
         b.Entity<Company>(e =>
         {
@@ -62,6 +66,21 @@ public class AppDbContext : DbContext
                 .WithMany(p => p.Contacts)
                 .HasForeignKey(x => x.PersonId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        b.Entity<Template>(e =>
+        {
+            e.Property(x => x.Kind).HasConversion<string>();
+            e.HasIndex(x => x.Kind).IsUnique(); // one row per kind
+        });
+
+        b.Entity<Outreach>(e =>
+        {
+            e.Property(x => x.Channel).HasConversion<string>();
+            e.Property(x => x.Kind).HasConversion<string>();
+            e.Property(x => x.Status).HasConversion<string>();
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Person).WithMany().HasForeignKey(x => x.PersonId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 }

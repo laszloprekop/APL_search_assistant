@@ -190,7 +190,7 @@ export function CompanyTable({
                 {/* 5px white gap below an expanded company so two adjacent open rows are separated. */}
                 {open.has(c.id) && (
                   <tr aria-hidden>
-                    <td colSpan={8} className="border-0 bg-white p-0"><div className="h-1.25" /></td>
+                    <td colSpan={8} className="bg-transparent"><div className="h-0 border-b-16 border-white" /></td>
                   </tr>
                 )}
               </Fragment>

@@ -75,3 +75,38 @@ public class ContactInfo
     public OutreachStatus OutreachStatus { get; set; } = OutreachStatus.NotContacted;
     public DateTimeOffset? LastContactedAt { get; set; }
 }
+
+/// <summary>An editable message template (PRD §9), one row per <see cref="TemplateKind"/>.
+/// Body holds {{merge_field}} tokens resolved per company/person at draft time.</summary>
+public class Template
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public TemplateKind Kind { get; set; }
+    public string? Subject { get; set; } // email kinds only
+    public string Body { get; set; } = "";
+    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+}
+
+/// <summary>One logged outreach action (PRD §6.5/§9). No auto-send in M4 — the user sends/copies/
+/// calls, then logs it here, which advances the company stage and the contact's reach-out status.
+/// Snapshot captures exactly what was drafted at the time.</summary>
+public class Outreach
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid CompanyId { get; set; }
+    public Company? Company { get; set; }
+    public Guid? PersonId { get; set; }
+    public Person? Person { get; set; }
+
+    public OutreachChannel Channel { get; set; }
+    public OutreachKind Kind { get; set; } = OutreachKind.Cold;
+    public OutreachLogStatus Status { get; set; } = OutreachLogStatus.Drafted;
+
+    public string? Subject { get; set; }
+    public string? Body { get; set; }
+    public string? Outcome { get; set; }       // phone-call result / free note
+    public string? SnapshotJson { get; set; }   // exact payload at log time
+
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? SentAt { get; set; }
+}

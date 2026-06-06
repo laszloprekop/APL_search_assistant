@@ -69,3 +69,25 @@ public record SettingsDto(
     string SearchProvider, bool SearchHasApiKey, string? SearchGoogleCseId,
     bool ProviderFromEnv, bool ApiKeyFromEnv, bool CseIdFromEnv);
 public record SettingsUpdateDto(string? SearchProvider, string? SearchApiKey, string? SearchGoogleCseId);
+
+// ---- M4: templates + 3-channel outreach (no auto-send) ----
+public record TemplateDto(TemplateKind Kind, string? Subject, string Body, DateTimeOffset UpdatedAt);
+public record TemplateUpdateDto(string? Subject, string? Body);
+
+// "Your details" that feed the {{your_*}} / {{period}} merge fields. Stored in the local DB;
+// the user's own data (not secrets), so returned to the UI as-is.
+public record OutreachSettingsDto(
+    string? YourName, string? CvSummary, string? Email, string? Phone, string? Linkedin,
+    string? Period, string? Area);
+
+public record OutreachDraftRequest(OutreachChannel Channel, OutreachKind? Kind, Guid? PersonId);
+public record OutreachDraftDto(OutreachChannel Channel, string? To, string? Subject, string Body);
+
+public record OutreachLogDto(
+    OutreachChannel Channel, OutreachKind Kind, Guid? PersonId,
+    string? Subject, string? Body, string? Outcome);
+
+public record OutreachDto(
+    Guid Id, Guid CompanyId, string CompanyName, Guid? PersonId, string? PersonName,
+    OutreachChannel Channel, OutreachKind Kind, OutreachLogStatus Status,
+    string? Subject, string? Body, string? Outcome, DateTimeOffset CreatedAt, DateTimeOffset? SentAt);

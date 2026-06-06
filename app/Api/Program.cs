@@ -58,6 +58,15 @@ using (var scope = app.Services.CreateScope())
         added++;
     }
     if (added > 0) db.SaveChanges();
+
+    // Seed the five outreach templates from Deliverable/01–04 (+ a followup starter) on first
+    // run only — they stay editable in-app afterwards, so this never overwrites user edits.
+    if (!db.Templates.Any())
+    {
+        foreach (var s in OutreachService.Seeds)
+            db.Templates.Add(new Template { Kind = s.Kind, Subject = s.Subject, Body = s.Body });
+        db.SaveChanges();
+    }
 }
 
 if (app.Environment.IsDevelopment())

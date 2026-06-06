@@ -478,6 +478,137 @@ public static class ApiEndpoints
             return Results.Ok(new { linkedInUrl = url });
         });
 
+        // ---- M4: outreach templates + "your details" settings -----------------
+        api.MapGet("/templates", async (AppDbContext db) =>
+        {
+            var list = await db.Templates.AsNoTracking().ToListAsync();
+            return Results.Ok(list.OrderBy(t => t.Kind)
+                .Select(t => new TemplateDto(t.Kind, t.Subject, t.Body, t.UpdatedAt)).ToList());
+        });
+
+        api.MapPut("/templates/{kind}", async (AppDbContext db, string kind, TemplateUpdateDto dto) =>
+        {
+            if (!Enum.TryParse<TemplateKind>(kind, true, out var k)) return Results.BadRequest("Unknown template kind.");
+            var t = await db.Templates.FirstOrDefaultAsync(x => x.Kind == k);
+            if (t is null) { t = new Template { Kind = k }; db.Templates.Add(t); }
+            if (dto.Subject is not null) t.Subject = dto.Subject;
+            if (dto.Body is not null) t.Body = dto.Body;
+            t.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            return Results.Ok(new TemplateDto(t.Kind, t.Subject, t.Body, t.UpdatedAt));
+        });
+
+        api.MapGet("/settings/outreach", async (AppDbContext db) =>
+        {
+            var map = await db.Settings.AsNoTracking().Where(s => s.Key.StartsWith("outreach."))
+                .ToDictionaryAsync(s => s.Key, s => s.Value);
+            string? G(string k) => map.TryGetValue(k, out var v) ? v : null;
+            return Results.Ok(new OutreachSettingsDto(
+                G("outreach.yourName"), G("outreach.cvSummary"), G("outreach.email"), G("outreach.phone"),
+                G("outreach.linkedin"), G("outreach.period"), G("outreach.area")));
+        });
+
+        api.MapPut("/settings/outreach", async (AppDbContext db, OutreachSettingsDto dto) =>
+        {
+            async Task Set(string key, string? value)
+            {
+                if (value is null) return; // null = keep existing; "" = clear
+                var e = await db.Settings.FindAsync(key);
+                if (e is null) db.Settings.Add(new Setting { Key = key, Value = value });
+                else e.Value = value;
+            }
+            await Set("outreach.yourName", dto.YourName);
+            await Set("outreach.cvSummary", dto.CvSummary);
+            await Set("outreach.email", dto.Email);
+            await Set("outreach.phone", dto.Phone);
+            await Set("outreach.linkedin", dto.Linkedin);
+            await Set("outreach.period", dto.Period);
+            await Set("outreach.area", dto.Area);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
+        // ---- M4: per-company drafts + outreach log (no auto-send) -------------
+        // Render the right template with merge fields; the client opens a prefilled compose
+        // window / copies the text / shows the script. Nothing is dispatched here.
+        api.MapPost("/companies/{id:guid}/outreach/draft", async (AppDbContext db, Guid id, OutreachDraftRequest req) =>
+        {
+            var c = await Load(db, id);
+            if (c is null) return Results.NotFound();
+            var kind = req.Kind ?? OutreachKind.Cold;
+            var person = req.PersonId is { } pid ? c.Persons.FirstOrDefault(p => p.Id == pid) : null;
+            var tplKind = OutreachService.TemplateFor(req.Channel, kind);
+            var tpl = await db.Templates.FirstOrDefaultAsync(t => t.Kind == tplKind);
+            if (tpl is null) return Results.Problem($"Template '{tplKind}' missing.");
+            var consts = await OutreachService.LoadConstantsAsync(db);
+            var fields = OutreachService.Fields(c, person, consts);
+            var subject = OutreachService.Render(tpl.Subject, fields);
+            var body = OutreachService.Render(tpl.Body, fields);
+            var to = OutreachService.RecipientFor(req.Channel, c, person);
+            return Results.Ok(new OutreachDraftDto(req.Channel, to, string.IsNullOrEmpty(subject) ? null : subject, body));
+        });
+
+        // Log an outreach the user performed (sent the mail / copied the inMail / made the call).
+        // Advances the company stage and bumps the touched contact-point's reach-out status.
+        api.MapPost("/companies/{id:guid}/outreach", async (AppDbContext db, Guid id, OutreachLogDto dto) =>
+        {
+            var c = await Load(db, id);
+            if (c is null) return Results.NotFound();
+            var person = dto.PersonId is { } pid ? c.Persons.FirstOrDefault(p => p.Id == pid) : null;
+            var snapshot = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                to = OutreachService.RecipientFor(dto.Channel, c, person),
+                dto.Subject, dto.Body, dto.Outcome,
+            });
+            var o = new Outreach
+            {
+                CompanyId = c.Id, PersonId = person?.Id, Channel = dto.Channel, Kind = dto.Kind,
+                Status = OutreachService.DefaultStatus(dto.Channel),
+                Subject = dto.Subject, Body = dto.Body, Outcome = dto.Outcome,
+                SnapshotJson = snapshot, SentAt = DateTimeOffset.UtcNow,
+            };
+            db.Outreach.Add(o);
+
+            // Stage auto-advance (PRD §6.3): first real outreach moves a pre-contact company on.
+            if (c.Stage is CompanyStage.Identified or CompanyStage.Enriched or CompanyStage.Ready)
+                c.Stage = CompanyStage.Contacted;
+
+            // Keep the per-contact reach-out status in sync with the channel just used: the
+            // chosen person's point if they have one, else the generic point we'd have used.
+            var ctype = OutreachService.ContactTypeFor(dto.Channel);
+            bool NotYet(ContactInfo x) => x.Type == ctype && x.OutreachStatus == OutreachStatus.NotContacted;
+            var contact =
+                (person is not null ? c.Contacts.FirstOrDefault(x => NotYet(x) && x.PersonId == person.Id) : null)
+                ?? c.Contacts.FirstOrDefault(x => NotYet(x) && x.PersonId == null);
+            if (contact is not null) { contact.OutreachStatus = OutreachStatus.Contacted; contact.LastContactedAt = DateTimeOffset.UtcNow; }
+
+            c.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            return Results.Ok(ToOutreachDto(o, c, person));
+        });
+
+        // Outbox / activity log (newest first; optionally scoped to one company).
+        api.MapGet("/outreach", async (AppDbContext db, Guid? companyId) =>
+        {
+            var q = db.Outreach.Include(o => o.Company).Include(o => o.Person).AsQueryable();
+            if (companyId is { } cid) q = q.Where(o => o.CompanyId == cid);
+            // SQLite can't ORDER BY DateTimeOffset in SQL — sort client-side (dataset is tiny).
+            var list = (await q.ToListAsync()).OrderByDescending(o => o.CreatedAt)
+                .Select(o => ToOutreachDto(o, o.Company, o.Person)).ToList();
+            return Results.Ok(list);
+        });
+
+        // Remove a mistaken Outbox entry. Doesn't roll back stage/contact-status (those are the
+        // company's truth) — just deletes the log row.
+        api.MapDelete("/outreach/{id:guid}", async (AppDbContext db, Guid id) =>
+        {
+            var o = await db.Outreach.FindAsync(id);
+            if (o is null) return Results.NotFound();
+            db.Outreach.Remove(o);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
         // ---- company-page capture from the extension (LinkedIn About, PRD §6.1) ----
         api.MapPost("/companies/upsert", async (AppDbContext db, List<CompanyImportRow> rows) =>
         {
@@ -585,6 +716,10 @@ public static class ApiEndpoints
 
     private static ContactDto ToContactDto(ContactInfo x) =>
         new(x.Id, x.Type, x.Value, x.Source, x.Confidence, x.SourceUrl, x.PersonId, x.OutreachStatus, x.LastContactedAt);
+
+    private static OutreachDto ToOutreachDto(Outreach o, Company? c, Person? p) =>
+        new(o.Id, o.CompanyId, c?.Name ?? "", o.PersonId, p?.Name, o.Channel, o.Kind, o.Status,
+            o.Subject, o.Body, o.Outcome, o.CreatedAt, o.SentAt);
 
     private static CompanyDto ToDto(Company c)
     {

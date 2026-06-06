@@ -61,3 +61,39 @@ public enum OutreachStatus
     Bounced,
     Closed,
 }
+
+/// <summary>The five message kinds (PRD §9). Seeded from Deliverable/01–04 + a followup starter,
+/// editable in-app. cold_email/linkedin_inmail/call_script drive M4; lexicon/followup are seeded
+/// now, their send-flows arrive in M5/M6.</summary>
+public enum TemplateKind
+{
+    ColdEmail,
+    LinkedinInmail,
+    CallScript,
+    Followup,
+    Lexicon,
+}
+
+/// <summary>Outreach channel (PRD §6.5). Email opens a prefilled compose window, LinkedIn is
+/// copy-to-send, Phone is a script the user follows — none are auto-dispatched in M4.</summary>
+public enum OutreachChannel
+{
+    Email,
+    Phone,
+    Linkedin,
+}
+
+public enum OutreachKind
+{
+    Cold,
+    Followup,
+}
+
+/// <summary>Lifecycle of one logged outreach. No auto-send in M4: Email/LinkedIn are marked
+/// Sent by the user after they send/copy; Phone is Logged with an outcome after the call.</summary>
+public enum OutreachLogStatus
+{
+    Drafted,
+    Sent,
+    Logged,
+}
