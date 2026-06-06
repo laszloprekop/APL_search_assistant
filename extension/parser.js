@@ -14,6 +14,25 @@
 
   const clean = (s) => (s || "").replace(/\s+/g, " ").trim();
 
+  // Defensive cleanup for company names lifted from a LinkedIn page header, which can bleed
+  // into junk like "ALTEN, CompanyALTEN1,446,778 followers" when JSON-LD is unavailable.
+  function sanitizeName(s) {
+    let t = clean(s);
+    if (!t) return t;
+    // Cut a trailing follower count and everything after it (en + sv).
+    t = t.replace(/\d[\d., \s]*\s*(followers|följare)\b.*$/i, "");
+    // Strip a "Company"/"Företag" label glued before the name ("CompanyALTEN" -> "ALTEN").
+    t = t.replace(/\b(?:Company|Företag)(?=[A-ZÅÄÖ])/g, "");
+    // Drop a leftover standalone "Company"/"Företag" token.
+    t = t.replace(/(^|[\s,])(?:Company|Företag)(?=[\s,]|$)/gi, "$1");
+    t = clean(t).replace(/^[\s,·|-]+|[\s,·|-]+$/g, "");
+    // Collapse an immediately repeated name token ("ALTEN, ALTEN" -> "ALTEN").
+    const toks = t.split(/\s*,\s*|\s+/).filter(Boolean);
+    const uniq = [];
+    for (const w of toks) if (!uniq.length || uniq[uniq.length - 1].toLowerCase() !== w.toLowerCase()) uniq.push(w);
+    return clean(uniq.join(" "));
+  }
+
   function cleanProfileUrl(href) {
     if (!href) return "";
     const abs = href.startsWith("http") ? href : "https://www.linkedin.com" + href;
@@ -289,6 +308,7 @@
         name = clean(al.replace(/\s+logo$/i, ""));
       }
       if (!name) name = clean(a.textContent);
+      name = sanitizeName(name);
       // Skip the bare logo anchor if its sibling text anchor gives a better name later;
       // but a usable id is enough to proceed.
       return { name: name || null, companyId: co.id, linkedinUrl: co.url };
@@ -314,7 +334,7 @@
     const h1 = d.querySelector("h1");
 
     return {
-      name: ld.name || (h1 ? clean(h1.textContent) : ""),
+      name: sanitizeName(ld.name || (h1 ? h1.textContent : "")),
       website: ld.website || extractWebsite(d),
       industry: about.industry || null, // industry isn't in LinkedIn's JSON-LD
       companySize: ld.companySize || about.companySize || null,
@@ -384,7 +404,7 @@
   }
 
   const API = {
-    clean, cleanProfileUrl, handleFromUrl, lanFromLocation, parseAllabolag,
+    clean, sanitizeName, cleanProfileUrl, handleFromUrl, lanFromLocation, parseAllabolag,
     parseCompany, parseCard, scanDocument,
     unwrapRedirect, extractWebsite, parseCompanyPage, organizationFromJsonLd,
     parseProfileExperience,

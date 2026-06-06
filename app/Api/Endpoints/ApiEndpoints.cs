@@ -241,7 +241,7 @@ public static class ApiEndpoints
         });
 
         // ---- enrichment: cautious public-website fetch (PRD §6.2) ------------
-        api.MapPost("/companies/{id:guid}/enrich", async (AppDbContext db, EnrichmentService svc, Guid id, EnrichRequest? body) =>
+        api.MapPost("/companies/{id:guid}/enrich", async (AppDbContext db, EnrichmentService svc, SearchService search, Guid id, EnrichRequest? body) =>
         {
             var c = await Load(db, id);
             if (c is null) return Results.NotFound();
@@ -280,6 +280,37 @@ public static class ApiEndpoints
                 }
             }
 
+            // Per-person search fallback (issue: the site crawl misses individual emails). For
+            // each named person still without a real email, search the provider for a bio/team
+            // page and scrape it. Capped to stay polite and keep search-API quota in check.
+            int personHits = 0, attempted = 0;
+            foreach (var p in c.Persons)
+            {
+                if (attempted >= 5) break; // bound search/fetch fan-out per enrich
+                var hasPersonEmail = c.Contacts.Any(x => x.PersonId == p.Id
+                    && x.Type == ContactType.Email && x.Source != ContactSource.Guessed);
+                if (hasPersonEmail) continue;
+                attempted++;
+                foreach (var pageUrl in await search.FindPersonPagesAsync(c, p.Name))
+                {
+                    var pr = await svc.ScrapePageAsync(pageUrl);
+                    if (!pr.Ok) continue;
+                    // Only accept an email we can actually tie to THIS person — never fabricate.
+                    var hit = pr.Contacts.FirstOrDefault(h => h.Type == ContactType.Email
+                        && (EmailLocalMatchesName(LocalPart(h.Value), p.Name)
+                            || (pr.SiteText is not null && NearInText(pr.SiteText, p.Name, h.Value))));
+                    if (hit is null) continue;
+                    if (c.Contacts.Any(x => x.Type == ContactType.Email && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase))) continue;
+                    c.Contacts.Add(new ContactInfo
+                    {
+                        Type = ContactType.Email, Value = hit.Value, Source = ContactSource.Website,
+                        Confidence = Confidence.Low, SourceUrl = hit.SourceUrl ?? pageUrl, PersonId = p.Id,
+                    });
+                    personHits++;
+                    break; // one good email per person is enough
+                }
+            }
+
             // Phone-first generic guesses (PRD §6.2): only when no REAL email was found and the
             // domain actually accepts mail (MX). Labeled Guessed, low confidence, off the ≥15 list.
             int guessed = 0;
@@ -310,10 +341,11 @@ public static class ApiEndpoints
             await db.SaveChangesAsync();
 
             var guessNote = guessed > 0 ? $" Added {guessed} guessed address(es) (info@/kontakt@) — unverified, so call to confirm; not counted for the list." : "";
+            var personNote = personHits > 0 ? $" Found {personHits} person email(s) via search." : "";
             var msg = r.Ok
-                ? $"Found {r.Contacts.Count} contact(s) on the site.{guessNote}"
-                : $"Couldn't enrich automatically — flagged for manual lookup.{guessNote} {r.Error}";
-            return Results.Ok(new EnrichResponse(ToDto(c), r.Ok, r.Contacts.Count, r.Error, msg));
+                ? $"Found {r.Contacts.Count} contact(s) on the site.{personNote}{guessNote}"
+                : $"Couldn't enrich automatically — flagged for manual lookup.{personNote}{guessNote} {r.Error}";
+            return Results.Ok(new EnrichResponse(ToDto(c), r.Ok || personHits > 0, r.Contacts.Count + personHits, r.Error, msg));
         });
 
         // ---- allabolag capture (extension) applied to a chosen company -------

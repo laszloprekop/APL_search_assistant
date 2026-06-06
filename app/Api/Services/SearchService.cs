@@ -12,8 +12,10 @@ internal record SearchResult(string Title, string Url, string Snippet);
 /// <summary>
 /// Provider-agnostic web search to find a company's official website (PRD §6.2). The provider
 /// (Brave / Google PSE / Serper) and API key are chosen at runtime via Settings and read from
-/// the local DB per request. Searches by COMPANY NAME ONLY — never person names — so no personal
-/// data leaves the machine. Returns ranked candidates for the human to confirm.
+/// the local DB per request. Website/LinkedIn lookups search by COMPANY NAME ONLY. The sole
+/// exception is FindPersonPagesAsync (a person name + company), used only as a last-resort
+/// fallback to fill a per-person email gap the free site crawl missed (user-confirmed).
+/// Returns ranked candidates for the human to confirm.
 /// </summary>
 public class SearchService
 {
@@ -129,6 +131,47 @@ public class SearchService
         {
             _log.LogWarning("LinkedIn-page search failed for {Name}: {Msg}", c.Name, e.Message);
             return null;
+        }
+    }
+
+    /// <summary>Person-level fallback (PRD §6.2): when the site crawl didn't yield a person's
+    /// email, find a bio/team page to scrape by searching the provider for that person within
+    /// the company. NOTE: this is the ONE place a person name is sent to the search provider —
+    /// used only to fill an email gap the free crawl missed (user-confirmed trade-off). Returns
+    /// candidate URLs, the company's own domain first; socials/directories are filtered out.</summary>
+    public async Task<List<string>> FindPersonPagesAsync(Company c, string personName, int max = 2)
+    {
+        var s = await LoadAsync();
+        if (!IsConfigured(s) || string.IsNullOrWhiteSpace(personName)) return new();
+        var query = $"\"{personName}\" {c.Name}".Trim();
+        try
+        {
+            var results = await RunAsync(s, query);
+            string? companyHost = Uri.TryCreate(c.Website, UriKind.Absolute, out var wu)
+                ? RegistrableDomain(wu.Host) : null;
+            var urls = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            // Two passes: company-domain pages first (most reliable), then other allowed pages.
+            foreach (var wantOnCompany in new[] { true, false })
+            {
+                if (companyHost is null && wantOnCompany) continue;
+                foreach (var r in results)
+                {
+                    if (urls.Count >= max) break;
+                    if (!Uri.TryCreate(r.Url, UriKind.Absolute, out var u)) continue;
+                    var host = u.Host.ToLowerInvariant();
+                    if (Excluded.Any(d => host.Contains(d))) continue; // skip LinkedIn/directories (also ToS)
+                    var onCompany = companyHost is not null && RegistrableDomain(host) == companyHost;
+                    if (onCompany != wantOnCompany) continue;
+                    if (seen.Add(u.GetLeftPart(UriPartial.Path))) urls.Add(u.ToString());
+                }
+            }
+            return urls;
+        }
+        catch (Exception e)
+        {
+            _log.LogWarning("Person-page search failed for {Name}: {Msg}", personName, e.Message);
+            return new();
         }
     }
 

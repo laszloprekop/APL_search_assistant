@@ -30,6 +30,9 @@
   const onProfile = () => /\/in\//.test(location.pathname);
   const onCompany = () => /\/company\//.test(location.pathname);
   const aboutUrl = (id) => `https://www.linkedin.com/company/${id}/about/`;
+  // The id of the company page we ACTUALLY landed on — LinkedIn may 302 /company/<id>/
+  // to a rebranded/merged page with a different id (the "branch URL" case).
+  const currentCompanyId = () => { const m = location.pathname.match(/\/company\/([^/?#]+)/); return m ? m[1] : null; };
 
   function expHeading() {
     for (const h of document.querySelectorAll("h2, h3"))
@@ -76,6 +79,12 @@
     busy("Reading company…");
     await waitFor(() => P.extractWebsite(document) || document.querySelector("h1, dl"));
     const page = P.parseCompanyPage(document) || {};
+    // Adopt the landed page's canonical id/url — a redirect to a different /company/<id>/
+    // would otherwise leave us storing the website against a stale id. JSON-LD in
+    // parseCompanyPage still yields the website even when the 302 dropped the /about/ tab.
+    const landedId = currentCompanyId();
+    if (landedId && landedId !== item.company_id) item.company_id = landedId;
+    if (page.linkedinUrl) item.company_linkedin_url = page.linkedinUrl;
     const website = page.website || null;
     item.website = website;
     item.website_source = website ? "linkedin" : "none";
@@ -87,6 +96,8 @@
 
   async function processPage(s) {
     const item = s.queue[s.i];
+    setBar(s.i, s.queue.length);
+    renderResults(s); // show progress immediately, before the (async) page read
     if (s.done || !item) { renderNext(s); return; }
     if (s.stage === "profile") {
       if (!onProfile()) { renderResume(s, "profile", item.linkedin_url, `${item.name}'s profile`); return; }
@@ -131,7 +142,7 @@
   }
 
   // -------------------------------------------------------------------- UI ---
-  let host, sh, barEl, stepEl, actEl, statusEl;
+  let host, sh, barEl, stepEl, actEl, statusEl, resultsEl;
   const esc = (s) => (s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   function flash(btn, msg) { const o = btn.dataset.l || btn.textContent; btn.dataset.l = o; btn.textContent = msg; setTimeout(() => (btn.textContent = btn.dataset.l), 1400); }
   function status(msg, kind) { if (statusEl) { statusEl.textContent = msg || ""; statusEl.dataset.kind = kind || ""; } }
@@ -140,6 +151,29 @@
     const pct = total ? Math.round((done / total) * 100) : 0;
     barEl.querySelector(".fill").style.width = pct + "%";
     barEl.querySelector(".lbl").textContent = `${done}/${total}`;
+  }
+
+  // Live feedback: every queued person that's been walked so far, with the company + website
+  // the wizard actually extracted. The person currently being processed is highlighted.
+  function renderResults(s) {
+    if (!resultsEl) return;
+    const rows = [];
+    for (let k = 0; k < s.queue.length; k++) {
+      const q = s.queue[k];
+      const processed = s.done || k < s.i;
+      const current = !s.done && k === s.i;
+      if (!processed && !current) continue;
+      const co = esc(q.company || q.name || "—");
+      let cls, ic, web;
+      if (current) { cls = "cur"; ic = "▸"; web = "reading…"; }
+      else if (q.website) { cls = "ok"; ic = "✓"; web = `<span class="web">${esc(q.website.replace(/^https?:\/\//, ""))}</span>`; }
+      else { cls = "miss"; ic = "—"; web = `<span class="web none">${q.skipped ? "skipped" : "no site"}</span>`; }
+      if (typeof web !== "string" || !web.startsWith("<")) web = `<span class="web">${esc(web)}</span>`;
+      rows.push(`<div class="r ${cls}"><span class="ic">${ic}</span><span class="nm" title="${co}">${co}</span>${web}</div>`);
+    }
+    resultsEl.innerHTML = rows.join("");
+    const cur = resultsEl.querySelector(".r.cur");
+    if (cur) cur.scrollIntoView({ block: "nearest" });
   }
 
   function busy(msg) {
@@ -166,6 +200,7 @@
     const found = s.queue.filter((q) => q.website).length;
     const missing = s.queue.length - found;
     setBar(s.queue.length, s.queue.length);
+    renderResults(s);
     stepEl.textContent = `Done — ${found} website${found === 1 ? "" : "s"} found, ${missing} for the app’s Find website.`;
     actEl.innerHTML = `<button class="send" id="send">Send enriched list to app</button><button class="ghost" id="discard">Discard</button>`;
     sh.getElementById("send").onclick = (e) => send(e.target);
@@ -176,16 +211,18 @@
     setBar(s.i, s.queue.length);
     if (s.done) { renderDone(s); return; }
     const item = s.queue[s.i];
+    const counter = `${s.i + 1}/${s.queue.length}`;
     if (s.stage === "company") {
-      stepEl.textContent = `${item.name} → ${item.company || "company"}`;
+      stepEl.textContent = `${counter} · ${item.name} → ${item.company || "company"}`;
       actEl.innerHTML = `<button class="primary" id="go">Open ${esc(item.company || "company")} ↗</button><button class="ghost" id="skip">Skip</button>`;
       sh.getElementById("go").onclick = () => go(aboutUrl(item.company_id));
     } else {
-      stepEl.textContent = `Next: ${item.name || "person"} (${s.i + 1}/${s.queue.length})`;
+      stepEl.textContent = `Next (${counter}): ${item.name || "person"}`;
       actEl.innerHTML = `<button class="primary" id="go">Open ${esc(item.name || "profile")} → profile</button><button class="ghost" id="skip">Skip</button>`;
       sh.getElementById("go").onclick = () => go(item.linkedin_url);
     }
     sh.getElementById("skip").onclick = () => skipCurrent();
+    renderResults(s);
   }
 
   function buildPanel() {
@@ -205,6 +242,15 @@
         .bar .fill { position:absolute; inset:0 auto 0 0; width:0; background:#4f46e5; transition:width .25s; }
         .bar .lbl { position:absolute; right:6px; top:-1px; font-size:9px; color:#5e6b74; }
         .step { font-size:12px; color:#1d2226; min-height:16px; margin-bottom:8px; }
+        .results { margin:8px 0; max-height:148px; overflow:auto; border:1px solid #eef1f3; border-radius:6px; }
+        .results:empty { display:none; }
+        .r { display:flex; align-items:baseline; gap:6px; font-size:11px; padding:4px 7px; border-bottom:1px solid #f3f4f6; }
+        .r:last-child { border-bottom:0; }
+        .r .ic { flex:none; width:12px; font-size:11px; }
+        .r .nm { font-weight:600; color:#1d2226; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:96px; }
+        .r .web { color:#057642; word-break:break-all; } .r .web.none { color:#b54708; font-style:italic; }
+        .r.ok .ic { color:#057642; } .r.miss .ic { color:#b54708; } .r.cur { background:#eef0ff; }
+        .r.cur .ic { color:#4f46e5; }
         .act { display:flex; gap:6px; }
         button { font-size:12px; padding:8px 9px; border:1px solid #d0d5dd; border-radius:6px; background:#f3f6f8; cursor:pointer; }
         button:hover { background:#e9eef2; } button[disabled] { opacity:.6; cursor:default; }
@@ -220,6 +266,7 @@
         <div class="b">
           <div class="bar"><div class="fill"></div><div class="lbl">0/0</div></div>
           <div class="step" id="step">Loading…</div>
+          <div class="results" id="results"></div>
           <div class="act" id="act"></div>
           <div class="status" id="status"></div>
           <div class="note">One click = one page. Reads only the page you opened — no background fetching. Keep it low-volume.</div>
@@ -230,6 +277,7 @@
     stepEl = sh.getElementById("step");
     actEl = sh.getElementById("act");
     statusEl = sh.getElementById("status");
+    resultsEl = sh.getElementById("results");
     sh.getElementById("x").onclick = () => cancel();
   }
 

@@ -69,26 +69,47 @@ public class EnrichmentService
             if (home is null) return new(false, null, new(), "Could not fetch the site.");
 
             var hits = ExtractContacts(home.Value.Html, url);
-            var siteText = ExtractText(home.Value.Html);
+            var texts = new List<string> { ExtractText(home.Value.Html) ?? "" };
 
-            // Follow one contact page if the homepage was thin on hits.
-            if (hits.Count < 2)
+            // Swedish SMEs hide emails on contact / about / team pages, not the homepage. Follow
+            // the on-site links that look like those pages (capped + throttled) and pool their
+            // text too, so person-attribution can match a name sitting next to an email.
+            foreach (var sub in FindContactLinks(home.Value.Html, url, 3))
             {
-                var contactUrl = FindContactLink(home.Value.Html, url);
-                if (contactUrl is not null)
-                {
-                    var cp = await FetchAsync(contactUrl);
-                    if (cp is not null) hits.AddRange(ExtractContacts(cp.Value.Html, contactUrl));
-                }
+                var cp = await FetchAsync(sub);
+                if (cp is null) continue;
+                hits.AddRange(ExtractContacts(cp.Value.Html, sub));
+                var t = ExtractText(cp.Value.Html);
+                if (!string.IsNullOrEmpty(t)) texts.Add(t!);
             }
 
             hits = Dedupe(hits);
-            var ok = hits.Count > 0 || !string.IsNullOrWhiteSpace(siteText);
-            return new(ok, siteText, hits, null);
+            var siteText = string.Join("\n", texts.Where(t => t.Length > 0));
+            if (siteText.Length > 8000) siteText = siteText[..8000];
+            var ok = hits.Count > 0 || siteText.Length > 0;
+            return new(ok, siteText.Length == 0 ? null : siteText, hits, null);
         }
         catch (Exception e)
         {
             _log.LogWarning("Enrichment failed for {Url}: {Msg}", url, e.Message);
+            return new(false, null, new(), e.Message);
+        }
+    }
+
+    /// <summary>Single-page scrape (no sub-crawl) — used by the per-person search fallback so
+    /// fetching a bio/team page found via search doesn't fan out into another full crawl.</summary>
+    public async Task<WebsiteEnrichment> ScrapePageAsync(string url)
+    {
+        try
+        {
+            var page = await FetchAsync(url);
+            if (page is null) return new(false, null, new(), "Could not fetch the page.");
+            var hits = Dedupe(ExtractContacts(page.Value.Html, url));
+            return new(true, ExtractText(page.Value.Html), hits, null);
+        }
+        catch (Exception e)
+        {
+            _log.LogWarning("Page scrape failed for {Url}: {Msg}", url, e.Message);
             return new(false, null, new(), e.Message);
         }
     }
@@ -166,20 +187,35 @@ public class EnrichmentService
         return Regex.Replace(decoded, @"\s+", " ").Trim();
     }
 
-    private static string? FindContactLink(string html, string baseUrl)
+    // Page slugs/labels most likely to carry contact + team emails (en + sv).
+    private static readonly string[] ContactKeywords =
+        { "kontakt", "contact", "om-oss", "om_oss", "/om/", "about", "team", "medarbetare",
+          "people", "ledning", "personal", "staff", "anstallda", "anställda", "employees", "vara-medarbetare" };
+
+    // Up to `max` distinct same-site links that look like contact/team pages. Skips the homepage,
+    // anchors, mailto:/tel:, and off-site links — we only follow the company's own pages.
+    private static List<string> FindContactLinks(string html, string baseUrl, int max)
     {
-        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var b)) return null;
+        if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var b)) return new();
+        var home = b.GetLeftPart(UriPartial.Path).TrimEnd('/');
         var doc = Parser.ParseDocument(html);
+        var found = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var a in doc.QuerySelectorAll("a[href]"))
         {
+            if (found.Count >= max) break;
             var href = a.GetAttribute("href") ?? "";
-            var text = (a.TextContent ?? "").ToLowerInvariant();
-            var match = href.Contains("kontakt", StringComparison.OrdinalIgnoreCase)
-                || href.Contains("contact", StringComparison.OrdinalIgnoreCase)
-                || text.Contains("kontakt") || text.Contains("contact");
-            if (match && Uri.TryCreate(b, href, out var abs)) return abs.ToString();
+            if (href.Length == 0 || href.StartsWith("#") || href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
+                || href.StartsWith("tel:", StringComparison.OrdinalIgnoreCase)) continue;
+            var hay = (href + " " + (a.TextContent ?? "")).ToLowerInvariant();
+            if (!ContactKeywords.Any(k => hay.Contains(k))) continue;
+            if (!Uri.TryCreate(b, href, out var abs)) continue;
+            if (!abs.Host.Equals(b.Host, StringComparison.OrdinalIgnoreCase)) continue; // same site only
+            var norm = abs.GetLeftPart(UriPartial.Path).TrimEnd('/');
+            if (norm.Equals(home, StringComparison.OrdinalIgnoreCase)) continue; // not the homepage again
+            if (seen.Add(norm)) found.Add(abs.ToString());
         }
-        return null;
+        return found;
     }
 
     // Keep the best (highest) confidence per unique (type, value). Confidence enum: High=0.

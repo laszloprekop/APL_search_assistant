@@ -138,6 +138,7 @@
 
   // -------------------------------------------------------------------- UI ----
   let countEl, previewEl, statusEl;
+  let gated = []; // buttons that require at least one capture (steps 2 & 3)
 
   function flash(btn, msg) {
     const old = btn.dataset.label || btn.textContent;
@@ -156,11 +157,14 @@
 
   function refresh() {
     countEl.textContent = store.size;
+    // Gate steps 2 (enrich) & 3 (output): nothing to enrich/send until the list has rows.
+    const hasRows = store.size > 0;
+    for (const b of gated) if (b) b.disabled = !hasRows;
     const rows = [...store.values()].slice(-8).reverse();
     previewEl.innerHTML = rows.map((r) =>
       `<div class="row"><b>${esc(r.name) || "—"}</b> · ${esc(r.company) || "<i>?company</i>"}`
       + `<div class="sub">${esc(r.title) || ""}${r.location ? " · " + esc(r.location) : ""}</div></div>`
-    ).join("") || '<div class="row sub">No captures yet. Click “Capture visible”.</div>';
+    ).join("") || '<div class="row sub">No captures yet — click “Capture people on this page”.</div>';
   }
 
   function buildPanel() {
@@ -171,27 +175,34 @@
     sh.innerHTML = `
       <style>
         * { box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
-        .panel { width: 312px; background:#fff; color:#1d2226; border:1px solid #d0d5dd;
+        .panel { width: 320px; background:#fff; color:#1d2226; border:1px solid #d0d5dd;
           border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,.22); overflow:hidden; }
         .hd { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#0a66c2; color:#fff; }
         .hd b { font-size:13px; } .hd .c { margin-left:auto; font-size:12px; opacity:.9; }
         .body { padding:10px 12px; }
+        .step { padding:8px 0; border-top:1px solid #eef1f3; }
+        .step:first-child { border-top:0; padding-top:2px; }
+        .lbl { display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; color:#1d2226; margin-bottom:6px; }
+        .lbl .n { display:inline-grid; place-items:center; width:17px; height:17px; border-radius:50%;
+          background:#0a66c2; color:#fff; font-size:10px; font-weight:700; flex:none; }
         .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
         button { font-size:12px; padding:7px 8px; border:1px solid #d0d5dd; border-radius:6px;
-          background:#f3f6f8; cursor:pointer; } button:hover { background:#e9eef2; }
-        button.primary { grid-column:1/3; background:#0a66c2; color:#fff; border-color:#0a66c2; font-weight:600; }
-        button.send { grid-column:1/3; background:#057642; color:#fff; border-color:#057642; font-weight:600; }
-        button.enrich { grid-column:1/3; background:#4f46e5; color:#fff; border-color:#4f46e5; font-weight:600; }
+          background:#f3f6f8; cursor:pointer; width:100%; } button:hover { background:#e9eef2; }
+        button[disabled] { opacity:.45; cursor:not-allowed; }
+        button[disabled]:hover { background:#f3f6f8; }
+        button.primary { background:#0a66c2; color:#fff; border-color:#0a66c2; font-weight:600; }
+        button.send { background:#057642; color:#fff; border-color:#057642; font-weight:600; margin-bottom:6px; }
+        button.enrich { background:#4f46e5; color:#fff; border-color:#4f46e5; font-weight:600; }
         button.ghost { background:#fff; }
-        button.wide { grid-column:1/3; }
-        .preview { margin-top:8px; max-height:150px; overflow:auto; border-top:1px solid #eef1f3; padding-top:6px; }
+        .hint2 { font-size:10px; color:#8a939b; margin-top:5px; line-height:1.35; }
+        .preview { margin-top:6px; max-height:140px; overflow:auto; border-top:1px solid #eef1f3; padding-top:6px; }
         .row { font-size:12px; padding:4px 0; border-bottom:1px solid #f3f4f6; }
         .sub { color:#5e6b74; font-size:11px; } i { color:#b54708; }
         .status { margin-top:8px; font-size:11px; line-height:1.35; min-height:14px; color:#5e6b74; }
         .status[data-kind="ok"] { color:#057642; } .status[data-kind="err"] { color:#b42318; }
         .status[data-kind="warn"] { color:#b54708; }
-        .note { font-size:10px; color:#8a939b; margin-top:6px; line-height:1.35; }
-        .min { cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; padding:0 2px; }
+        .min { cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; padding:0 2px; width:auto; }
+        .min:hover { background:transparent; }
         .collapsed .body { display:none; }
       </style>
       <div class="panel" id="panel">
@@ -200,20 +211,31 @@
           <button class="min" id="min" title="Minimize">▾</button>
         </div>
         <div class="body">
-          <div class="grid">
-            <button class="primary" id="cap">Capture visible</button>
-            <button class="enrich" id="enrich">Enrich websites →</button>
+          <div class="step">
+            <div class="lbl"><span class="n">1</span> Build the list</div>
+            <button class="primary" id="cap">Capture people on this page</button>
+            <div class="hint2">Browse a people-search; each capture appends the visible results
+              (deduped). Page through LinkedIn and capture each page.</div>
+          </div>
+          <div class="step">
+            <div class="lbl"><span class="n">2</span> Add company website URLs</div>
+            <button class="enrich" id="enrich">Walk the list → fetch websites</button>
+            <div class="hint2">Guided, one click per page: each person’s profile → company
+              About → grabs the website onto their row.</div>
+          </div>
+          <div class="step">
+            <div class="lbl"><span class="n">3</span> Output</div>
             <button class="send" id="send">Send to APL Assistant</button>
-            <button id="csv">Copy CSV</button>
-            <button id="rows">Copy rows</button>
-            <button id="json" class="ghost">Copy JSON</button>
-            <button id="dl" class="ghost">Download CSV</button>
-            <button id="clr" class="ghost wide">Clear all</button>
+            <div class="grid">
+              <button id="csv">Copy CSV</button>
+              <button id="rows">Copy rows</button>
+              <button id="json" class="ghost">Copy JSON</button>
+              <button id="dl" class="ghost">Download CSV</button>
+            </div>
           </div>
           <div class="status" id="status"></div>
           <div class="preview" id="preview"></div>
-          <div class="note">Captures accumulate across result pages — capture page 1, click
-            LinkedIn’s Next, capture page 2, and they append (deduped). Manual trigger only.</div>
+          <button id="clr" class="ghost" style="margin-top:6px;">Clear all</button>
         </div>
       </div>`;
     document.documentElement.appendChild(host);
@@ -232,6 +254,9 @@
     $("dl").onclick = () => download(`apl_linkedin_${Date.now()}.csv`, toLexCsv(true), "text/csv");
     $("clr").onclick = (e) => { store.clear(); persist(); refresh(); status(""); flash(e.target, "Cleared"); };
     $("min").onclick = () => $("panel").classList.toggle("collapsed");
+
+    // Steps 2 & 3 stay disabled until step 1 has produced rows (no enrich/send before capture).
+    gated = ["enrich", "send", "csv", "rows", "json", "dl", "clr"].map($);
 
     refresh();
   }

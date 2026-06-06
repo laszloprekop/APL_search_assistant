@@ -281,3 +281,27 @@ test("parseCompanyPage reads the real LinkedIn About <dl> (label <h3> inside <dt
   assert.equal(r.companySize, "11-50 employees");
   assert.equal(r.headquarters, "Umeå, Västerbotten");
 });
+
+// --- sanitizeName: defend against LinkedIn company-header bleed ----------------
+test("sanitizeName strips a glued 'Company' label + follower count", () => {
+  assert.equal(P.sanitizeName("ALTEN, CompanyALTEN1,446,778 followers"), "ALTEN");
+});
+
+test("sanitizeName drops a trailing Swedish follower count", () => {
+  assert.equal(P.sanitizeName("Volvo Group 1 234 567 följare"), "Volvo Group");
+});
+
+test("sanitizeName collapses an immediately repeated name token", () => {
+  assert.equal(P.sanitizeName("Knightec, Knightec"), "Knightec");
+});
+
+test("sanitizeName leaves a clean multi-word name untouched", () => {
+  assert.equal(P.sanitizeName("COS Systems AB"), "COS Systems AB");
+});
+
+test("parseCompanyPage sanitizes a junk h1 when JSON-LD is absent", () => {
+  const dom = new JSDOM(`<!DOCTYPE html><body>
+    <h1>ALTEN, CompanyALTEN1,446,778 followers</h1></body>`);
+  const r = P.parseCompanyPage(dom.window.document);
+  assert.equal(r.name, "ALTEN");
+});

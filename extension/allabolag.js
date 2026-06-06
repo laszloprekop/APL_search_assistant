@@ -16,6 +16,16 @@
   let row = null;        // parsed allabolag data
   let companies = [];    // app companies for the target dropdown
   let targetId = "";     // chosen company id
+  let pinnedId = null;   // app company id pinned via the #aplc=<id> link from the app
+
+  // The app opens allabolag with #aplc=<companyId>; stash it so it survives the navigation
+  // from the search page to the company detail page, and overrides fuzzy name-matching.
+  const TARGET_KEY = "apl_allabolag_target";
+  const TARGET_TTL = 30 * 60 * 1000; // 30 min — don't pin a stale target on a later visit
+  const getTarget = () => new Promise((res) => chrome.storage.local.get(TARGET_KEY, (d) => res(d[TARGET_KEY] || null)));
+  const setTarget = (t) => new Promise((res) => chrome.storage.local.set({ [TARGET_KEY]: t }, () => res()));
+  const clearTarget = () => new Promise((res) => chrome.storage.local.remove(TARGET_KEY, () => res()));
+  function hashTargetId() { const m = (location.hash || "").match(/aplc=([0-9a-fA-F-]{8,})/); return m ? m[1] : null; }
 
   const norm = (s) => (s || "").toLowerCase()
     .replace(/\(publ\)/g, "")
@@ -43,10 +53,13 @@
       const res = await fetch(API_BASE + "/api/companies", { headers: { "Accept": "application/json" } });
       companies = res.ok ? await res.json() : [];
     } catch { companies = []; }
-    const m = bestMatch(row.name);
-    targetId = m ? m.id : (companies[0] ? companies[0].id : "");
+    // Pinned target (from the app's #aplc link) wins over fuzzy name-matching.
+    const pinned = pinnedId ? companies.find((c) => c.id === pinnedId) : null;
+    const m = pinned ? null : bestMatch(row.name);
+    targetId = pinned ? pinned.id : (m ? m.id : (companies[0] ? companies[0].id : ""));
     render();
     if (!companies.length) status(`Captured ${row.name}. No app companies found — is the app running on ${API_BASE}?`, "warn");
+    else if (pinned) status(`Captured ${row.name}. Linked to “${pinned.name}” (from the app).`, "ok");
     else status(`Captured ${row.name}. ${m ? "Matched “" + m.name + "”." : "No close match — pick the target."}`, m ? "ok" : "warn");
   }
 
@@ -66,6 +79,7 @@
       const r = await res.json();
       status(r.message || "Applied.", "ok");
       flash(btn, "Sent ✓");
+      await clearTarget(); pinnedId = null; // consume the pin so a later visit isn't mis-linked
     } catch (e) {
       status(`Send failed — is the app running on ${API_BASE}? (${e})`, "err");
       flash(btn, "Failed");
@@ -98,9 +112,10 @@
       field("Omsättning", row.revenueBand) +
       field("Note", row.financialNote) +
       `<div class="sendto"><span class="k">Send to</span>
-         <select id="target">${opts || '<option value="">— no app companies —</option>'}</select></div>`;
+         <select id="target">${opts || '<option value="">— no app companies —</option>'}</select></div>`
+      + (pinnedId && targetId === pinnedId ? `<div class="pin">↳ pinned by the app — overrides name matching</div>` : "");
     selEl = bodyEl.querySelector("#target");
-    if (selEl) selEl.onchange = (e) => { targetId = e.target.value; };
+    if (selEl) selEl.onchange = (e) => { targetId = e.target.value; }; // manual override still allowed
   }
 
   function buildPanel() {
@@ -126,6 +141,7 @@
         .v { color:#1d2226; word-break:break-word; } .v.miss { color:#b54708; }
         .sendto { display:flex; gap:8px; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #eef1f3; }
         .sendto select { flex:1; font-size:12px; padding:5px; border:1px solid #d0d5dd; border-radius:6px; }
+        .pin { font-size:10px; color:#0f766e; margin-top:4px; }
         .hint { font-size:12px; color:#8a939b; padding:4px 0; }
         .status { margin-top:8px; font-size:11px; min-height:14px; color:#5e6b74; line-height:1.35; }
         .status[data-kind=ok]{color:#057642;} .status[data-kind=err]{color:#b42318;} .status[data-kind=warn]{color:#b54708;}
@@ -154,5 +170,14 @@
   }
 
   window.__aplCaptureAllabolag = () => { capture(); return row; };
-  buildPanel();
+
+  (async function init() {
+    // On the page the app opened, #aplc=<id> is present → stash it (survives the nav to the
+    // company detail page). On any allabolag page, honour a recently-stashed pin.
+    const hashId = hashTargetId();
+    if (hashId) await setTarget({ id: hashId, ts: Date.now() });
+    const t = await getTarget();
+    if (t && t.id && Date.now() - (t.ts || 0) < TARGET_TTL) pinnedId = t.id;
+    buildPanel();
+  })();
 })();

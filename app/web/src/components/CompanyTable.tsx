@@ -5,7 +5,10 @@ import type {
 } from "../types";
 import { Icon, STAGES, stageMeta, sourceIcon, enrichmentMeta } from "../lib/ui";
 
-const allabolagUrl = (name: string) => `https://www.allabolag.se/bransch-sök?q=${encodeURIComponent(name)}`;
+// The #aplc=<id> fragment pins the extension's allabolag capture to THIS app company, so a
+// name mismatch (e.g. "Euroclear" vs "Euroclear Sweden AB") still lands on the right entry.
+const allabolagUrl = (name: string, id: string) =>
+  `https://www.allabolag.se/bransch-sök?q=${encodeURIComponent(name)}#aplc=${id}`;
 
 interface Props {
   companies: Company[];
@@ -82,7 +85,7 @@ export function CompanyTable({
                     if (window.getSelection()?.toString()) return;
                     toggle(c.id);
                   }}
-                  className={`cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
+                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
                 >
                   <td className="px-3 py-2 align-top">
                     <button onClick={() => toggle(c.id)} className="text-slate-400 hover:text-slate-700">
@@ -169,7 +172,7 @@ export function CompanyTable({
                     company row above (no divider) and sharing its open/hover background. */}
                 <tr
                   onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
-                  className={`!border-t-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
+                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
                 >
                   <td></td>
                   <td colSpan={7} className="px-3 pb-2 pt-0">
@@ -319,6 +322,7 @@ function EnrichmentSection({
   autoRun: string | null; // `${kind}#${nonce}`
   onAutoRan: () => void;
 }) {
+  const [name, setName] = useState(c.name);
   const [website, setWebsite] = useState(c.website ?? "");
   const [orgNumber, setOrgNumber] = useState(c.orgNumber ?? "");
   const [lan, setLan] = useState(c.locationLan ?? "");
@@ -357,13 +361,28 @@ function EnrichmentSection({
   const em = enrichmentMeta(c.enrichmentStatus);
   const inp = "w-full rounded border border-slate-200 px-2 py-1 text-xs";
 
-  const save = () =>
+  // Save is enabled only when something actually changed (issue: avoid no-op submits).
+  const norm = (s?: string | null) => (s ?? "").trim();
+  const dirty =
+    norm(name) !== norm(c.name) ||
+    norm(website) !== norm(c.website) ||
+    norm(orgNumber) !== norm(c.orgNumber) ||
+    norm(lan) !== norm(c.locationLan) ||
+    norm(kommun) !== norm(c.locationKommun) ||
+    norm(revenueBand) !== norm(c.revenueBand) ||
+    norm(employeeCount) !== norm(c.employeeCount) ||
+    norm(financialNote) !== norm(c.financialNote);
+
+  const save = () => {
+    if (!dirty) return;
     onUpdateFields(c, {
+      name: norm(name) || c.name, // name is required server-side — never blank it
       website: website || null, orgNumber: orgNumber || null,
       locationLan: lan || null, locationKommun: kommun || null,
       revenueBand: revenueBand || null, employeeCount: employeeCount || null,
       financialNote: financialNote || null,
     });
+  };
 
   const auto = async () => {
     let url = website.trim();
@@ -431,6 +450,13 @@ function EnrichmentSection({
       <div className="grid gap-2 sm:grid-cols-3">
         <label className="text-[11px] text-slate-500 sm:col-span-3">
           <span className="flex items-center gap-1">
+            Company name
+            <span className="text-slate-300">— fix mis-scraped names here</span>
+          </span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company AB" className={inp} />
+        </label>
+        <label className="text-[11px] text-slate-500 sm:col-span-3">
+          <span className="flex items-center gap-1">
             Website
             {c.website && (
               <a href={c.website} target="_blank" rel="noreferrer" title="Open saved website"
@@ -461,11 +487,13 @@ function EnrichmentSection({
         </label>
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button onClick={save} className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700">
+        <button onClick={save} disabled={!dirty}
+          title={dirty ? "Save your edits" : "No changes to save"}
+          className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-indigo-600">
           <Icon name="content-save" /> Save fields
         </button>
         <span className="text-[11px] text-slate-400">
-          allabolag (step 3) auto-fills via the extension — or edit any field here and save.
+          {dirty ? "Unsaved changes." : "allabolag (step 3) auto-fills via the extension — or edit any field here and save."}
         </span>
       </div>
     </div>
@@ -543,7 +571,7 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
       </button>
       <Icon name="chevron-right" className="text-slate-300" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
-        href={allabolagUrl(c.name)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
+        href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         className={pill(oDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
         {mark(3, oDone, "bg-emerald-600")} Scan Allabolag
       </a>
