@@ -36,10 +36,11 @@ export function CompanyTable({
   // The collapsed-row "next step" chip opens the row AND auto-runs the matching action
   // (Find website when there's no site yet; Find contacts when there's a site but no
   // email/phone). EnrichmentSection consumes `pending` on mount and clears it.
-  const [pending, setPending] = useState<Record<string, "website" | "contacts">>({});
+  // Value is `${kind}#${nonce}` so re-clicking a step (refresh) changes the token and re-runs.
+  const [pending, setPending] = useState<Record<string, string>>({});
   const startStep = (c: Company, kind: "website" | "contacts") => {
     setOpen((p) => new Set(p).add(c.id));
-    setPending((p) => ({ ...p, [c.id]: kind }));
+    setPending((p) => ({ ...p, [c.id]: `${kind}#${Date.now()}` }));
   };
   const clearPending = (id: string) => setPending((p) => { const n = { ...p }; delete n[id]; return n; });
 
@@ -191,7 +192,7 @@ function ExpandedRow({
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
   onSetContactStatus: (id: string, status: OutreachStatus) => void;
   onEnrichPerson: (personId: string) => Promise<EnrichResponse>;
-  autoRun: "website" | "contacts" | null;
+  autoRun: string | null; // `${kind}#${nonce}` from a step click, or null
   onAutoRan: () => void;
 }) {
   const [type, setType] = useState<ContactType>("Email");
@@ -302,7 +303,7 @@ function EnrichmentSection({
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
-  autoRun: "website" | "contacts" | null;
+  autoRun: string | null; // `${kind}#${nonce}`
   onAutoRan: () => void;
 }) {
   const [website, setWebsite] = useState(c.website ?? "");
@@ -372,10 +373,9 @@ function EnrichmentSection({
   const ranFor = useRef<string | null>(null);
   useEffect(() => {
     if (!autoRun) return;
-    const key = `${c.id}:${autoRun}`;
-    if (ranFor.current === key) return;
-    ranFor.current = key;
-    (autoRun === "website" ? find : auto)();
+    if (ranFor.current === autoRun) return; // guards StrictMode double-fire; nonce lets re-runs through
+    ranFor.current = autoRun;
+    (autoRun.startsWith("website") ? find : auto)();
     onAutoRan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRun]);
@@ -389,30 +389,8 @@ function EnrichmentSection({
         <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
           <Icon name={em.icon} /> {em.label}
         </span>
-        {/* Enrichment progression: 1 find the site → 2 pull contacts from it → 3 allabolag for org.nr/financials/phone */}
-        <div className="ml-auto flex items-center gap-1">
-          <button onClick={find} disabled={busy}
-            title="Step 1 — search the web for the official site (and resolve the LinkedIn page)"
-            className="inline-flex items-center gap-1 rounded border border-indigo-200 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
-            <span className="grid h-4 w-4 place-items-center rounded-full bg-indigo-600 text-[9px] font-bold text-white">1</span>
-            <Icon name="magnify" /> {busy ? "Searching…" : "Find website"}
-          </button>
-          <Icon name="chevron-right" className="text-slate-300" />
-          <button onClick={auto} disabled={busy}
-            title="Step 2 — fetch email/phone from the website"
-            className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
-            <span className="grid h-4 w-4 place-items-center rounded-full bg-emerald-600 text-[9px] font-bold text-white">2</span>
-            <Icon name="web" /> {busy ? "Fetching…" : "Find contacts"}
-          </button>
-          <Icon name="chevron-right" className="text-slate-300" />
-          <a href={`https://www.allabolag.se/bransch-sök?q=${encodeURIComponent(c.name)}`}
-            target="_blank" rel="noreferrer"
-            title="Step 3 — open on allabolag for org.nr / financials / switchboard phone (capture with the extension)"
-            className="inline-flex items-center gap-1 rounded border border-teal-200 bg-teal-50 px-2 py-1 text-xs font-medium text-teal-700 hover:bg-teal-100">
-            <span className="grid h-4 w-4 place-items-center rounded-full bg-teal-600 text-[9px] font-bold text-white">3</span>
-            <Icon name="open-in-new" /> allabolag
-          </a>
-        </div>
+        {busy && <span className="ml-auto text-xs text-slate-400">Working…</span>}
+        {/* The step actions live on the company row (StepRow) — no duplicate cluster here. */}
       </div>
       {searchMsg && <p className="mb-2 text-xs text-amber-600">{searchMsg}</p>}
       {cands && cands.length > 0 && (
@@ -525,33 +503,36 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
   );
 }
 
-// Collapsed-row enrichment progression. Each step shows a ✓ + unfilled style once satisfied;
-// otherwise a filled pill that runs the step (1/2 in-app, 3 opens allabolag for the extension).
+// Collapsed-row enrichment progression — the single source of step actions. A satisfied step
+// drops its border to a plain capsule and shows a refresh icon (click to re-run); otherwise a
+// numbered filled pill that runs the step (1/2 in-app, 3 opens allabolag for the extension).
 function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts") => void }) {
   const wDone = !!c.website;
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
   const pill = (done: boolean, active: string) =>
-    `inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${done ? "border-slate-200 bg-white text-slate-400" : active}`;
+    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-slate-100 text-slate-500 hover:bg-slate-200" : `border ${active}`}`;
   const mark = (n: number, done: boolean, dot: string) =>
-    done ? <Icon name="check-circle" className="text-green-500" />
-      : <span className={`grid h-3.5 w-3.5 place-items-center rounded-full text-[8px] font-bold text-white ${dot}`}>{n}</span>;
+    done ? <Icon name="refresh" className="text-slate-400" />
+      : <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold text-white ${dot}`}>{n}</span>;
   return (
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
-      <button title="Step 1 — find the company website" onClick={(e) => { e.stopPropagation(); onStep("website"); }}
+      <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
+        onClick={(e) => { e.stopPropagation(); onStep("website"); }}
         className={pill(wDone, "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100")}>
-        {mark(1, wDone, "bg-indigo-600")}<Icon name="magnify" /> Website
+        {mark(1, wDone, "bg-indigo-600")} Website
       </button>
       <Icon name="chevron-right" className="text-slate-300" />
-      <button title="Step 2 — find email/phone from the site" onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
+      <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
+        onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
         className={pill(kDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
-        {mark(2, kDone, "bg-emerald-600")}<Icon name="card-account-mail" /> Contacts
+        {mark(2, kDone, "bg-emerald-600")} Contacts
       </button>
       <Icon name="chevron-right" className="text-slate-300" />
-      <a title="Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"
+      <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         className={pill(oDone, "border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100")}>
-        {mark(3, oDone, "bg-teal-600")}<Icon name="open-in-new" /> allabolag
+        {mark(3, oDone, "bg-teal-600")} allabolag
       </a>
     </div>
   );
