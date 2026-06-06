@@ -7,6 +7,8 @@ import { CompanyTable } from "./components/CompanyTable";
 import { AddCompanyForm } from "./components/AddCompanyForm";
 import { ImportPanel } from "./components/ImportPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
+import { OutboxPanel } from "./components/OutboxPanel";
+import { TemplatesPanel } from "./components/TemplatesPanel";
 
 function App() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -14,7 +16,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
-  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings">("none");
+  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates">("none");
 
   const load = useCallback(async () => {
     try {
@@ -71,6 +73,16 @@ function App() {
             <p className="text-sm text-slate-400">Company pipeline · M1</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setPanel(panel === "outbox" ? "none" : "outbox")}
+              title="Outbox — outreach activity log"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              <Icon name="tray-full" /> Outbox
+            </button>
+            <button onClick={() => setPanel(panel === "templates" ? "none" : "templates")}
+              title="Outreach templates"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              <Icon name="text-box-multiple-outline" />
+            </button>
             <button onClick={() => setPanel(panel === "settings" ? "none" : "settings")}
               title="Settings"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
@@ -98,6 +110,8 @@ function App() {
         {panel === "add" && <div className="mb-4"><AddCompanyForm onCreate={createCompany} onClose={() => setPanel("none")} /></div>}
         {panel === "import" && <div className="mb-4"><ImportPanel onImport={importCapture} onClose={() => setPanel("none")} /></div>}
         {panel === "settings" && <div className="mb-4"><SettingsPanel onClose={() => setPanel("none")} onSaved={load} /></div>}
+        {panel === "outbox" && <div className="mb-4"><OutboxPanel onClose={() => setPanel("none")} /></div>}
+        {panel === "templates" && <div className="mb-4"><TemplatesPanel onClose={() => setPanel("none")} /></div>}
 
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-slate-400"><Icon name="filter-variant" /> Filter</span>
