@@ -142,6 +142,23 @@ company's LinkedIn page and an **APL · Company** panel appears (bottom-right):
 > labelled "Website"/"Webbplats" value plus Industry / Company size / Headquarters. Be on the
 > **About tab** so those fields are present.
 
+## allabolag capture (org.nr, financials, switchboard phone)
+The extension also runs on **`allabolag.se`**. From the app, click **Open on allabolag** on a
+company → open its detail page (`…/foretag/…`) → an **APL · allabolag** panel appears:
+
+1. **Capture company** — reads org.nr, the **switchboard phone**, kommun, and the
+   Omsättning/Resultat/Bolagsform figures (semantic `companyId-*` / `StatsWidget-*` anchors,
+   not MUI's hashed classes).
+2. It loads your app companies and **pre-selects the best name match** ("COS Systems AB" ↔
+   "COS Systems"); confirm or change the **Send to** target.
+3. **Send to app** → `POST /api/companies/{id}/allabolag` fills org.nr / kommun / revenue /
+   financial note and adds the phone as a **Switchboard** contact (high-confidence — it counts
+   toward the ≥15 list).
+
+> Why an extension and not a server fetch: allabolag is behind Cloudflare, which blocks
+> automated server requests — but **not** your real browser. Reading the page *you* opened is
+> the same manual, low-volume, assisted posture as the LinkedIn capture.
+
 ## Permissions
 - `storage` — to persist captures across result-page navigations.
 - `host_permissions: http://localhost:5099/*` — to send to the local app.

@@ -295,6 +295,40 @@ public static class ApiEndpoints
             return Results.Ok(new EnrichResponse(ToDto(c), r.Ok, r.Contacts.Count, r.Error, msg));
         });
 
+        // ---- allabolag capture (extension) applied to a chosen company -------
+        // Cloudflare blocks server-side allabolag fetches, so the browser extension reads the
+        // page the user opened and POSTs org.nr / financials / switchboard phone here.
+        api.MapPost("/companies/{id:guid}/allabolag", async (AppDbContext db, Guid id, AllabolagApplyDto dto) =>
+        {
+            var c = await Load(db, id);
+            if (c is null) return Results.NotFound();
+
+            if (!string.IsNullOrWhiteSpace(dto.OrgNumber)) c.OrgNumber = dto.OrgNumber.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.Kommun)) c.LocationKommun = dto.Kommun.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.Lan)) c.LocationLan = dto.Lan.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.RevenueBand)) c.RevenueBand = dto.RevenueBand.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.EmployeeCount)) c.EmployeeCount = dto.EmployeeCount.Trim();
+            if (!string.IsNullOrWhiteSpace(dto.FinancialNote)) c.FinancialNote = dto.FinancialNote.Trim();
+
+            // allabolag's listed number is the company switchboard — high-confidence, real (counts
+            // toward the ≥15 list), deduped by value.
+            bool phoneAdded = false;
+            if (!string.IsNullOrWhiteSpace(dto.Phone))
+            {
+                var val = dto.Phone.Trim();
+                if (!c.Contacts.Any(x => x.Type == ContactType.Phone && string.Equals(x.Value, val, StringComparison.OrdinalIgnoreCase)))
+                {
+                    c.Contacts.Add(new ContactInfo { Type = ContactType.Phone, Value = val, Source = ContactSource.Switchboard, Confidence = Confidence.High });
+                    phoneAdded = true;
+                }
+            }
+
+            c.UpdatedAt = DateTimeOffset.UtcNow;
+            await db.SaveChangesAsync();
+            var msg = $"Applied allabolag data to {c.Name}." + (phoneAdded ? " Added switchboard phone." : "");
+            return Results.Ok(new AllabolagApplyResult(ToDto(c), phoneAdded, msg));
+        });
+
         // ---- settings (search provider + key, stored in the local DB) --------
         api.MapGet("/settings", async (SearchService search) => Results.Ok(await search.GetSettingsAsync()));
 

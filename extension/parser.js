@@ -324,8 +324,67 @@
     };
   }
 
+  // ---- allabolag.se COMPANY DETAIL page (/foretag/.../<ID>) -----------------
+  // Cloudflare blocks server-side fetches, but a content script reading the page the USER
+  // opened is fine. Anchors are allabolag's semantic classes (companyId-label/-address,
+  // StatsWidget-*), not MUI's hashed `mui-*` classes. Values are in 1000s SEK ("Belopp i 1000").
+  function parseAllabolag(doc) {
+    const d = doc || (typeof document !== "undefined" ? document : null);
+    if (!d) return null;
+
+    const h1 = d.querySelector("h1");
+    const name = h1 ? clean(h1.textContent) : "";
+
+    // org.nr (NNNNNN-NNNN) + street address both ride on .companyId-address — tell them apart.
+    let orgNumber = null, address = null;
+    for (const el of d.querySelectorAll(".companyId-address")) {
+      const t = clean(el.textContent);
+      if (!orgNumber && /^\d{6}-\d{4}$/.test(t)) { orgNumber = t; continue; }
+      if (!address && /\d{3}\s?\d{2}\s+\S/.test(t)) address = t;
+    }
+    if (!orgNumber) {
+      const m = (d.body && d.body.textContent || "").match(/\b\d{6}-\d{4}\b/);
+      if (m) orgNumber = m[0];
+    }
+
+    const tel = d.querySelector('a[href^="tel:"]');
+    const phone = tel ? clean(tel.textContent) : null;
+
+    let kommun = null; // "..., 903 21 Umeå" -> "Umeå"
+    if (address) { const m = address.match(/\d{3}\s?\d{2}\s+(.+)$/); if (m) kommun = clean(m[1]); }
+
+    // financial stat cells: header -> value (header often carries a trailing year)
+    const stats = {};
+    for (const cell of d.querySelectorAll(".StatsWidget-cell")) {
+      const h = clean((cell.querySelector(".StatsWidget-header") || {}).textContent || "");
+      const v = clean((cell.querySelector(".StatsWidget-value") || {}).textContent || "").replace(/ /g, " ");
+      if (h) stats[h] = v;
+    }
+    const findStat = (re) => { for (const k of Object.keys(stats)) if (re.test(k)) return { label: k, value: stats[k] }; return null; };
+    const yearOf = (label) => (label.match(/\d{4}/) || [""])[0];
+
+    const oms = findStat(/^Omsättning/i);
+    const res = findStat(/^Resultat efter finansnetto/i);
+    const ans = findStat(/^Anställda/i);
+    const bolagsform = stats["Bolagsform"] || null;
+    const reg = stats["Registreringsår"] || null;
+
+    const revenueBand = oms ? `${oms.value} tkr${yearOf(oms.label) ? ` (${yearOf(oms.label)})` : ""}` : null;
+    const note = [];
+    if (res) note.push(`Resultat e. finansnetto${yearOf(res.label) ? ` ${yearOf(res.label)}` : ""}: ${res.value} tkr`);
+    if (bolagsform) note.push(bolagsform);
+    if (reg) note.push(`reg ${reg}`);
+
+    return {
+      name, orgNumber, phone, address, kommun,
+      revenueBand, employeeCount: ans ? ans.value : null,
+      financialNote: note.join(" · ") || null,
+      _isCompanyPage: !!(name && orgNumber),
+    };
+  }
+
   const API = {
-    clean, cleanProfileUrl, handleFromUrl, lanFromLocation,
+    clean, cleanProfileUrl, handleFromUrl, lanFromLocation, parseAllabolag,
     parseCompany, parseCard, scanDocument,
     unwrapRedirect, extractWebsite, parseCompanyPage, organizationFromJsonLd,
     parseProfileExperience,

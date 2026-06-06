@@ -51,6 +51,12 @@ public record StatsDto(int Total, int ReadyForList, int Target, Dictionary<strin
 public record EnrichRequest(string? Website);
 public record EnrichResponse(CompanyDto Company, bool Ok, int ContactsFound, string? Error, string Message);
 
+// allabolag detail-page capture (extension) applied to a chosen company (Docs §6.2).
+public record AllabolagApplyDto(
+    string? OrgNumber, string? Phone, string? Kommun, string? Lan,
+    string? RevenueBand, string? EmployeeCount, string? FinancialNote);
+public record AllabolagApplyResult(CompanyDto Company, bool PhoneAdded, string Message);
+
 // Search-to-website (PRD §6.2 enhancement). Provider chosen at runtime in Settings.
 public record WebsiteCandidate(string Url, string Title, string Snippet, int Score, string Reason);
 public record FindWebsiteResponse(string Query, List<WebsiteCandidate> Candidates, string? Error);

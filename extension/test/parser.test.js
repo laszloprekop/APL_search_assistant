@@ -121,6 +121,54 @@ test("parseCompanyPage tolerates a missing website / About section", () => {
   assert.equal(r.industry, null);
 });
 
+// --- allabolag.se company detail page ---------------------------------------
+// Built from Material/allabolag-company-path.md (COS Systems AB, captured June 2026).
+function parseAlla(html) {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${html}</body>`);
+  return P.parseAllabolag(dom.window.document);
+}
+
+const ALLA_COS = `
+  <h1 class="MuiTypography-h1">COS Systems AB</h1>
+  <div class="companyId-overview">
+    <span class="companyId-label">Org.nr</span><span class="companyId-address">556830-8703</span>
+  </div>
+  <div class="companyId-overview">
+    <span class="companyId-label">Telefon</span><span><a href="tel:0706565119">070-656 51 19</a></span>
+    <span class="MuiBox-root"><span class="companyId-label">Adress</span></span>
+    <span class="companyId-address">Storgatan 28 e, 903 21 Umeå</span>
+  </div>
+  <div class="MuiStack-root">
+    <div class="StatsWidget-cell"><span class="StatsWidget-header">Omsättning 2024</span><span class="StatsWidget-value">5&nbsp;406</span></div>
+    <div class="StatsWidget-cell"><span class="StatsWidget-header">Resultat efter finansnetto 2024</span><span class="StatsWidget-value">−18&nbsp;508</span></div>
+    <div class="StatsWidget-cell"><span class="StatsWidget-header">EBITDA 2024</span><span class="StatsWidget-value">−18&nbsp;859</span></div>
+    <div class="StatsWidget-cell"><span class="StatsWidget-header">Bolagsform</span><span class="StatsWidget-value">Aktiebolag</span></div>
+    <div class="StatsWidget-cell"><span class="StatsWidget-header">Registreringsår</span><span class="StatsWidget-value">2010</span></div>
+  </div>`;
+
+test("parseAllabolag reads name, org.nr, phone, kommun and financials", () => {
+  const r = parseAlla(ALLA_COS);
+  assert.equal(r.name, "COS Systems AB");
+  assert.equal(r.orgNumber, "556830-8703");
+  assert.equal(r.phone, "070-656 51 19");
+  assert.equal(r.kommun, "Umeå");
+  assert.equal(r.revenueBand, "5 406 tkr (2024)"); // &nbsp; folded to a normal space
+  assert.equal(r.financialNote, "Resultat e. finansnetto 2024: −18 508 tkr · Aktiebolag · reg 2010");
+  assert.equal(r._isCompanyPage, true);
+});
+
+test("parseAllabolag tells the org.nr .companyId-address from the address one", () => {
+  const r = parseAlla(ALLA_COS);
+  assert.equal(r.address, "Storgatan 28 e, 903 21 Umeå");
+  assert.notEqual(r.orgNumber, r.address);
+});
+
+test("parseAllabolag returns _isCompanyPage=false off a company page (e.g. search list)", () => {
+  const r = parseAlla(`<h1>Företagssökning</h1><div>no org number here</div>`);
+  assert.equal(r._isCompanyPage, false);
+  assert.equal(r.orgNumber, null);
+});
+
 // --- JSON-LD (schema.org) — the robust primary path --------------------------
 function ld(json, extra = "") {
   return `<script type="application/ld+json">${JSON.stringify(json)}</script>${extra}`;
