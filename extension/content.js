@@ -95,6 +95,26 @@
     }
   }
 
+  // -------------------------------------- start the website-enrichment wizard -
+  // Hands the captured rows to wizard.js (Docs/enrichment-wizard.md) and navigates to the
+  // first person's profile. From there the wizard drives profile → company About, one click
+  // per page, enriching each row with the authoritative LinkedIn website + canonical company URL.
+  async function startWizard(btn) {
+    if (store.size === 0) { status("Capture some people first.", "warn"); return; }
+    // Only rows with a profile URL are walkable; queue[0] must be the first navigation target.
+    const queue = [...store.values()].filter((r) => r.linkedin_url);
+    if (queue.length === 0) { status("No profile URLs to walk — recapture the list.", "warn"); return; }
+    if (!confirm(`Walk ${queue.length} captured ${queue.length === 1 ? "person" : "people"} to fetch company websites from LinkedIn?\n\nYou'll click once per page; the extension only reads the page you open.`)) return;
+    const wstate = { active: true, queue, i: 0, stage: "profile", resolved: {}, done: false };
+    try {
+      await chrome.storage.local.set({ apl_wizard: wstate });
+      flash(btn, "Starting…");
+      location.href = queue[0].linkedin_url;
+    } catch (e) {
+      status(`Couldn't start the wizard (${e}).`, "err");
+    }
+  }
+
   // -------------------------------------------------- send to the local app ---
   async function sendToApp(btn) {
     const rows = [...store.values()];
@@ -161,6 +181,7 @@
           background:#f3f6f8; cursor:pointer; } button:hover { background:#e9eef2; }
         button.primary { grid-column:1/3; background:#0a66c2; color:#fff; border-color:#0a66c2; font-weight:600; }
         button.send { grid-column:1/3; background:#057642; color:#fff; border-color:#057642; font-weight:600; }
+        button.enrich { grid-column:1/3; background:#4f46e5; color:#fff; border-color:#4f46e5; font-weight:600; }
         button.ghost { background:#fff; }
         button.wide { grid-column:1/3; }
         .preview { margin-top:8px; max-height:150px; overflow:auto; border-top:1px solid #eef1f3; padding-top:6px; }
@@ -181,6 +202,7 @@
         <div class="body">
           <div class="grid">
             <button class="primary" id="cap">Capture visible</button>
+            <button class="enrich" id="enrich">Enrich websites →</button>
             <button class="send" id="send">Send to APL Assistant</button>
             <button id="csv">Copy CSV</button>
             <button id="rows">Copy rows</button>
@@ -202,6 +224,7 @@
     const $ = (id) => sh.getElementById(id);
 
     $("cap").onclick = (e) => { const r = scan(); refresh(); flash(e.target, `+${r.added} (${r.parsed} parsed)`); };
+    $("enrich").onclick = (e) => startWizard(e.target);
     $("send").onclick = (e) => sendToApp(e.target);
     $("csv").onclick = (e) => copy(toLexCsv(true), e.target);
     $("rows").onclick = (e) => copy(toLexCsv(false), e.target);

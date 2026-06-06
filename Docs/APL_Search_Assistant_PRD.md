@@ -86,6 +86,7 @@ A **search session** groups the companies captured from one query/filter so the 
 - **Paste-capture box** (v1): paste a LinkedIn profile's visible text / URL, or an allabolag company's details; the app parses what it can and creates/updates a `Company` (+ optional `Person`).
 - **Bookmarklet** (v1.5, optional): a "Save to APL Assistant" bookmarklet that POSTs the *currently displayed* fields from the page the user has open. User-initiated, per-page, not bulk.
 - **Out of scope:** background crawlers, programmatic LinkedIn login, bulk unattended pulls.
+- **Guided website-enrichment wizard** (extension): a same-tab, click-only flow that walks captured people through profile → company About to pull the authoritative LinkedIn `Website` field, deduping companies by canonical `/company/<ID>/`. One click = one navigation; no background fetch. Full spec: [`enrichment-wizard.md`](./enrichment-wizard.md).
 
 **Geography** is a **hard, configurable filter** (`Setting: target_lan`, default **Norrland** — Norrbotten/Västerbotten), reflecting LTU + the deck's AF-housing-in-Norrland note. It drives allabolag filtering and flags out-of-region captures.
 

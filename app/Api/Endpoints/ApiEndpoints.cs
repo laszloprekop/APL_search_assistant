@@ -7,6 +7,15 @@ namespace Api.Endpoints;
 
 public static class ApiEndpoints
 {
+    // The canonical company identity is the `/company/<ID>/` segment of a LinkedIn URL
+    // (numeric id or slug). Used to dedupe companies on import (Docs/enrichment-wizard.md).
+    private static string? CompanyIdFrom(string? url)
+    {
+        if (string.IsNullOrWhiteSpace(url)) return null;
+        var m = System.Text.RegularExpressions.Regex.Match(url, @"/company/([^/?#]+)");
+        return m.Success ? m.Groups[1].Value.ToLowerInvariant() : null;
+    }
+
     public static void MapApiEndpoints(this WebApplication app)
     {
         var api = app.MapGroup("/api");
@@ -147,7 +156,16 @@ public static class ApiEndpoints
             foreach (var r in rows)
             {
                 var coName = string.IsNullOrWhiteSpace(r.Company) ? "(okänt företag)" : r.Company.Trim();
-                var company = companies.FirstOrDefault(c => string.Equals(c.Name, coName, StringComparison.OrdinalIgnoreCase));
+
+                // Identity (two-key model, Docs/enrichment-wizard.md): prefer the canonical
+                // /company/<ID>/ when the wizard supplied it — it unifies messy name variants
+                // ("mfex" vs "MFEXbyEuroclear") — and fall back to name match otherwise.
+                var coId = CompanyIdFrom(r.Company_linkedin_url);
+                Company? company = coId is not null
+                    ? companies.FirstOrDefault(c => CompanyIdFrom(c.LinkedInUrl) == coId)
+                    : null;
+                company ??= companies.FirstOrDefault(c => string.Equals(c.Name, coName, StringComparison.OrdinalIgnoreCase));
+
                 if (company is null)
                 {
                     company = new Company
@@ -161,6 +179,16 @@ public static class ApiEndpoints
                     companies.Add(company);
                     companiesCreated++;
                 }
+
+                // Absorb the wizard's authoritative LinkedIn fields onto the company spine.
+                if (coId is not null && string.IsNullOrWhiteSpace(company.LinkedInUrl))
+                    company.LinkedInUrl = r.Company_linkedin_url!.Trim();
+                if (!string.IsNullOrWhiteSpace(r.Website) && string.IsNullOrWhiteSpace(company.Website))
+                    company.Website = r.Website!.Trim();
+                // If we'd matched by id under the placeholder name, adopt the clean one.
+                if (string.Equals(company.Name, "(okänt företag)", StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(coName, "(okänt företag)", StringComparison.OrdinalIgnoreCase))
+                    company.Name = coName;
 
                 var handle = string.IsNullOrWhiteSpace(r.Handle) ? null : r.Handle.Trim();
                 var name = r.Name?.Trim();
@@ -220,20 +248,41 @@ public static class ApiEndpoints
                     if (!c.Contacts.Any(x => x.Type == hit.Type && string.Equals(x.Value, hit.Value, StringComparison.OrdinalIgnoreCase)))
                         c.Contacts.Add(new ContactInfo { Type = hit.Type, Value = hit.Value, Source = ContactSource.Website, Confidence = hit.Confidence, SourceUrl = hit.SourceUrl });
                 }
-                var hasContact = c.Contacts.Any(x => x.Type == ContactType.Email) || c.Contacts.Any(x => x.Type == ContactType.Phone);
-                c.EnrichmentStatus = hasContact ? EnrichmentStatus.Enriched : EnrichmentStatus.NeedsManualLookup;
-                c.EnrichedAt = DateTimeOffset.UtcNow;
             }
-            else
+
+            // Phone-first generic guesses (PRD §6.2): only when no REAL email was found and the
+            // domain actually accepts mail (MX). Labeled Guessed, low confidence, off the ≥15 list.
+            int guessed = 0;
+            var hasRealEmail = c.Contacts.Any(x => x.Type == ContactType.Email && x.Source != ContactSource.Guessed);
+            if (!hasRealEmail)
             {
-                c.EnrichmentStatus = EnrichmentStatus.NeedsManualLookup;
+                var domain = EnrichmentService.MailDomain(url);
+                if (domain is not null && await svc.DomainAcceptsMailAsync(domain))
+                {
+                    foreach (var local in new[] { "info", "kontakt" })
+                    {
+                        var addr = $"{local}@{domain}";
+                        if (!c.Contacts.Any(x => x.Type == ContactType.Email && string.Equals(x.Value, addr, StringComparison.OrdinalIgnoreCase)))
+                        {
+                            c.Contacts.Add(new ContactInfo { Type = ContactType.Email, Value = addr, Source = ContactSource.Guessed, Confidence = Confidence.Low });
+                            guessed++;
+                        }
+                    }
+                }
             }
+
+            // Status reflects REAL contacts only — a guessed address still means "call the switchboard".
+            var hasReal = c.Contacts.Any(x => x.Source != ContactSource.Guessed
+                && (x.Type == ContactType.Email || x.Type == ContactType.Phone));
+            c.EnrichmentStatus = (r.Ok && hasReal) ? EnrichmentStatus.Enriched : EnrichmentStatus.NeedsManualLookup;
+            if (r.Ok) c.EnrichedAt = DateTimeOffset.UtcNow;
             c.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync();
 
+            var guessNote = guessed > 0 ? $" Added {guessed} guessed address(es) (info@/kontakt@) — unverified, so call to confirm; not counted for the list." : "";
             var msg = r.Ok
-                ? $"Found {r.Contacts.Count} contact(s) on the site."
-                : $"Couldn't enrich automatically — flagged for manual lookup. {r.Error}";
+                ? $"Found {r.Contacts.Count} contact(s) on the site.{guessNote}"
+                : $"Couldn't enrich automatically — flagged for manual lookup.{guessNote} {r.Error}";
             return Results.Ok(new EnrichResponse(ToDto(c), r.Ok, r.Contacts.Count, r.Error, msg));
         });
 
@@ -332,8 +381,10 @@ public static class ApiEndpoints
     private static Task<Company?> Load(AppDbContext db, Guid id) =>
         db.Companies.Include(c => c.Persons).Include(c => c.Contacts).FirstOrDefaultAsync(c => c.Id == id);
 
+    // Guessed (info@/kontakt@) addresses are unverified — they never count toward "has email",
+    // Ready, or the ≥15 Lexicon list (Docs/enrichment-wizard.md decision; PRD §6.4).
     private static bool HasType(Company c, ContactType t) =>
-        c.Contacts.Any(x => x.Type == t && !string.IsNullOrWhiteSpace(x.Value));
+        c.Contacts.Any(x => x.Type == t && x.Source != ContactSource.Guessed && !string.IsNullOrWhiteSpace(x.Value));
 
     private static bool IsReadyForList(Company c) => HasType(c, ContactType.Email) && HasType(c, ContactType.Phone);
 

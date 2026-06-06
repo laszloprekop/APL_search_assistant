@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using AngleSharp.Html.Parser;
 using Api.Models;
+using DnsClient;
 
 namespace Api.Services;
 
@@ -32,6 +33,32 @@ public class EnrichmentService
     {
         _http = http;
         _log = log;
+    }
+
+    // The mail domain for generic-address guessing: the website host minus a leading "www.".
+    public static string? MailDomain(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var u)) return null;
+        var h = u.Host.ToLowerInvariant();
+        return h.StartsWith("www.") ? h[4..] : h;
+    }
+
+    // Cheap sanity gate for guessed addresses (phone-first, PRD §6.2): does the domain publish
+    // MX records, i.e. can it receive mail at all? Doesn't confirm a specific mailbox exists —
+    // guessed addresses stay low-confidence and out of the ≥15 list. Fails closed (no MX → no guess).
+    public async Task<bool> DomainAcceptsMailAsync(string domain)
+    {
+        try
+        {
+            var lookup = new LookupClient(new LookupClientOptions { Timeout = TimeSpan.FromSeconds(3), UseCache = true, Retries = 1 });
+            var res = await lookup.QueryAsync(domain, QueryType.MX);
+            return res.Answers.MxRecords().Any(mx => !string.IsNullOrWhiteSpace(mx.Exchange?.Value));
+        }
+        catch (Exception e)
+        {
+            _log.LogDebug(e, "MX lookup failed for {Domain}", domain);
+            return false;
+        }
     }
 
     public async Task<WebsiteEnrichment> EnrichWebsiteAsync(string url)

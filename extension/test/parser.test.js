@@ -165,6 +165,53 @@ test("parseCompanyPage falls back to DOM when there's no JSON-LD", () => {
   assert.equal(r._source, "dom");
 });
 
+// --- PERSON PROFILE Experience -> canonical company link --------------------
+function parseProfile(html) {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${html}</body>`);
+  return P.parseProfileExperience(dom.window.document);
+}
+
+// Real logged-in profile Experience markup (from Material/Company website URL journey.md):
+// the company link is /company/<numeric-id>/ and the name rides on the logo's aria-label.
+test("parseProfileExperience reads the first /company/ID/ under the Experience heading", () => {
+  const r = parseProfile(`
+    <section aria-label="Primary content">
+      <a href="https://www.linkedin.com/company/999/">current-company pill in the TOP CARD (must be ignored)</a>
+      <h2 componentkey="ProfileNullStateCardAnchor_Experience">Experience</h2>
+      <div componentkey="entity-collection-item-19a98a">
+        <a href="https://www.linkedin.com/company/69567/">
+          <figure><svg role="img" aria-label="Euroclear FundsPlace logo"></svg>
+            <img alt="Euroclear FundsPlace logo"></figure></a>
+        <a href="https://www.linkedin.com/company/69567/">
+          <div><p>Engineering Manager</p><p>Euroclear FundsPlace · Full-time</p></div></a>
+      </div>
+    </section>`);
+  assert.equal(r.companyId, "69567");
+  assert.equal(r.linkedinUrl, "https://www.linkedin.com/company/69567/");
+  assert.equal(r.name, "Euroclear FundsPlace");
+});
+
+test("parseProfileExperience ignores a /company/ link that precedes the Experience heading", () => {
+  // No heading-following company link -> nothing from Experience.
+  const r = parseProfile(`
+    <a href="https://www.linkedin.com/company/123/">Top card current company</a>
+    <h2>Experience</h2>`);
+  assert.equal(r, null);
+});
+
+test("parseProfileExperience falls back to a slug company id and link text for the name", () => {
+  const r = parseProfile(`
+    <h3>Experience</h3>
+    <a href="/company/cos-systems/"><span>COS Systems</span></a>`);
+  assert.equal(r.companyId, "cos-systems");
+  assert.equal(r.linkedinUrl, "https://www.linkedin.com/company/cos-systems/");
+  assert.equal(r.name, "COS Systems");
+});
+
+test("parseProfileExperience returns null when there is no company in Experience", () => {
+  assert.equal(parseProfile(`<h2>Experience</h2><p>Self-employed</p>`), null);
+});
+
 // Real logged-in LinkedIn company About markup (captured from the live page, June 2026):
 // no JSON-LD; website lives in a <dl> as <dt><h3>Website</h3></dt><dd><a href>…</a></dd>.
 test("parseCompanyPage reads the real LinkedIn About <dl> (label <h3> inside <dt>)", () => {

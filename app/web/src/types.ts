@@ -6,7 +6,7 @@ export type CompanyStage =
 export type CompanySource = "LinkedIn" | "Allabolag" | "Manual";
 export type EnrichmentStatus = "Pending" | "Enriched" | "NeedsManualLookup";
 export type ContactType = "Email" | "Phone";
-export type ContactSource = "Website" | "Switchboard" | "LinkedIn" | "Manual";
+export type ContactSource = "Website" | "Switchboard" | "LinkedIn" | "Manual" | "Guessed";
 export type Confidence = "High" | "Medium" | "Low";
 
 export interface Person {

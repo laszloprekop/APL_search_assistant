@@ -107,5 +107,15 @@
   }
 
   window.__aplCaptureCompany = () => { capture(); return row; };
-  buildPanel();
+
+  // Stand down while the enrichment wizard is running — it owns the UI on company pages
+  // (Docs/enrichment-wizard.md). Otherwise show the standalone company-capture panel.
+  try {
+    chrome.storage.local.get("apl_wizard", (d) => {
+      if (d && d.apl_wizard && d.apl_wizard.active) return; // wizard drives this page
+      buildPanel();
+    });
+  } catch {
+    buildPanel();
+  }
 })();

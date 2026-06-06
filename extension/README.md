@@ -36,6 +36,27 @@ currently viewing** into a CSV/JSON, to seed your APL contact list. Implements t
    - **Copy JSON** — the richer record (incl. `company_confidence`, `raw_current`).
 6. **Clear all** wipes the accumulated set (and storage) when you start a new campaign.
 
+## Enrich websites — the guided wizard (click-only)
+After capturing your people list, click **Enrich websites →**. The extension walks each
+captured person through **their profile → their company's About page**, reading the
+authoritative LinkedIn **Website** field and the canonical `/company/<ID>/` URL, then holds
+the enriched list until you **Send**.
+
+- **One click = one page.** A small **APL · Enrich** panel (with a progress bar) appears at a
+  fixed spot; click its button to open the next page, it reads what rendered, and the next
+  button reappears under your cursor. No background fetching, no auto-advance, no new tabs —
+  it only reads the page *you* opened. Keep it low-volume (this is the ToS line; see below).
+- **Dedupe on the fly.** Several people at one company → each profile is visited (that's where
+  the company link lives), but each company's About page is read only **once**.
+- **Skip** anything that won't resolve (private profile, freelancer, company with no LinkedIn
+  page). Those, plus companies whose About page lists no site, fall to the app's **Find
+  website** (web search) as stage 2.
+- **Send enriched list to app** → `POST /api/companies/import`. The app dedupes companies by
+  the canonical `/company/<ID>/` (unifying name variants like `mfex` / `MFEXbyEuroclear`) and
+  fills each company's website.
+
+Full design + rationale (incl. why background fetching is off the table): `Docs/enrichment-wizard.md`.
+
 ## Output (CSV schema)
 Columns match `Deliverable/lexicon_list.csv` so captures append straight into your ≥15 list.
 LinkedIn fills these:

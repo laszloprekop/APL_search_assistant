@@ -31,7 +31,11 @@ public record CompanyDto(
 /// <summary>One row from the LinkedIn capture extension's JSON export (PRD §6.1).</summary>
 public record CaptureRow(
     string? Name, string? Title, string? Company, string? Company_confidence,
-    string? Location, string? Lan, string? Linkedin_url, string? Handle, string? Raw_current);
+    string? Location, string? Lan, string? Linkedin_url, string? Handle, string? Raw_current,
+    // Filled by the enrichment wizard (Docs/enrichment-wizard.md): the canonical company
+    // identity + authoritative LinkedIn website. Absent on a plain people-capture send.
+    string? Company_id = null, string? Company_linkedin_url = null,
+    string? Website = null, string? Website_source = null);
 
 public record ImportResult(int CompaniesCreated, int PersonsAdded, int DuplicatesSkipped, List<Guid> CompanyIds);
 

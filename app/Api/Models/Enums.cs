@@ -40,6 +40,7 @@ public enum ContactSource
     Switchboard,
     LinkedIn,
     Manual,
+    Guessed, // generic pattern (info@/kontakt@) — unverified; excluded from the ≥15 list
 }
 
 public enum Confidence

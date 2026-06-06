@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import type {
   Company, CompanyStage, CompanyUpdate, Contact, ContactType, ContactSource, EnrichResponse,
   FindLinkedinResponse, FindWebsiteResponse, WebsiteCandidate,
@@ -27,6 +27,17 @@ export function CompanyTable({
       n.has(id) ? n.delete(id) : n.add(id);
       return n;
     });
+
+  // The collapsed-row "next step" chip opens the row AND auto-runs the matching action
+  // (Find website when there's no site yet; Find contacts when there's a site but no
+  // email/phone). EnrichmentSection consumes `pending` on mount and clears it.
+  const [pending, setPending] = useState<Record<string, "website" | "contacts">>({});
+  const startNext = (c: Company) => {
+    const kind: "website" | "contacts" = c.website ? "contacts" : "website";
+    setOpen((p) => new Set(p).add(c.id));
+    setPending((p) => ({ ...p, [c.id]: kind }));
+  };
+  const clearPending = (id: string) => setPending((p) => { const n = { ...p }; delete n[id]; return n; });
 
   if (companies.length === 0)
     return (
@@ -85,6 +96,15 @@ export function CompanyTable({
                     <div className="text-xs text-slate-400">
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
                     </div>
+                    {!c.readyForList && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); startNext(c); }}
+                        className="mt-1 inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-100"
+                        title="Next manual step for this company">
+                        <Icon name={c.website ? "card-account-mail" : "magnify"} />
+                        {c.website ? "Find contacts" : "Find website"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-3 py-2 align-top">
                     {person ? (
@@ -140,7 +160,7 @@ export function CompanyTable({
                   <tr className="bg-indigo-50/60">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
-                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} />
+                      <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
                     </td>
                   </tr>
                 )}
@@ -154,7 +174,7 @@ export function CompanyTable({
 }
 
 function ExpandedRow({
-  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
+  c, onAddContact, onDeleteContact, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin, autoRun, onAutoRan,
 }: {
   c: Company;
   onAddContact: (companyId: string, contact: Contact) => void;
@@ -163,6 +183,8 @@ function ExpandedRow({
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
+  autoRun: "website" | "contacts" | null;
+  onAutoRan: () => void;
 }) {
   const [type, setType] = useState<ContactType>("Email");
   const [value, setValue] = useState("");
@@ -203,9 +225,14 @@ function ExpandedRow({
         <ul className="mb-2 space-y-1">
           {c.contacts.map((ct) => (
             <li key={ct.id} className="flex items-center gap-2 text-sm text-slate-700">
-              <Icon name={ct.type === "Email" ? "email" : "phone"} className="text-slate-400" />
-              <span>{ct.value}</span>
-              {ct.sourceUrl ? (
+              <Icon name={ct.type === "Email" ? "email" : "phone"} className={ct.source === "Guessed" ? "text-amber-500" : "text-slate-400"} />
+              <span className={ct.source === "Guessed" ? "text-amber-700" : undefined}>{ct.value}</span>
+              {ct.source === "Guessed" ? (
+                <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+                  title="Generic pattern — unverified. Call to confirm; not counted toward the ≥15 list.">
+                  guessed · verify
+                </span>
+              ) : ct.sourceUrl ? (
                 <a href={ct.sourceUrl} target="_blank" rel="noreferrer"
                   className="text-xs text-indigo-500 hover:underline" title={`Extracted from ${ct.sourceUrl}`}>
                   ({ct.source} <Icon name="open-in-new" className="text-[10px]" />)
@@ -244,19 +271,21 @@ function ExpandedRow({
         </div>
       </div>
       </div>
-      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} />
+      <EnrichmentSection c={c} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} autoRun={autoRun} onAutoRan={onAutoRan} />
     </div>
   );
 }
 
 function EnrichmentSection({
-  c, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin,
+  c, onEnrich, onUpdateFields, onFindWebsite, onFindLinkedin, autoRun, onAutoRan,
 }: {
   c: Company;
   onEnrich: (c: Company, website?: string) => Promise<EnrichResponse>;
   onUpdateFields: (c: Company, over: Partial<CompanyUpdate>) => void;
   onFindWebsite: (c: Company) => Promise<FindWebsiteResponse>;
   onFindLinkedin: (c: Company) => Promise<FindLinkedinResponse>;
+  autoRun: "website" | "contacts" | null;
+  onAutoRan: () => void;
 }) {
   const [website, setWebsite] = useState(c.website ?? "");
   const [orgNumber, setOrgNumber] = useState(c.orgNumber ?? "");
@@ -318,6 +347,14 @@ function EnrichmentSection({
     catch (e) { setMsg(String(e)); }
     finally { setBusy(false); }
   };
+
+  // Triggered by the collapsed-row "next step" chip: run the right action once on open.
+  useEffect(() => {
+    if (!autoRun) return;
+    (autoRun === "website" ? find : auto)();
+    onAutoRan();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoRun]);
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white p-3">
@@ -398,9 +435,14 @@ function EnrichmentSection({
         <button onClick={save} className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700">
           <Icon name="content-save" /> Save fields
         </button>
-        <span className="text-[11px] text-slate-400">
-          allabolag is manual — paste org.nr / financials here (Cloudflare blocks auto-fetch).
-        </span>
+        <a
+          href={`https://www.allabolag.se/bransch-sök?q=${encodeURIComponent(c.name)}`}
+          target="_blank" rel="noreferrer"
+          className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+          title="Open this company on allabolag (Cloudflare blocks auto-fetch — copy org.nr / financials into the fields above)">
+          <Icon name="open-in-new" /> Open on allabolag
+        </a>
+        <span className="text-[11px] text-slate-400">copy org.nr / financials into the fields above.</span>
       </div>
     </div>
   );

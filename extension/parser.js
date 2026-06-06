@@ -248,6 +248,54 @@
     };
   }
 
+  // ---- PERSON PROFILE PAGE (Experience) parsing -----------------------------
+  // The canonical company link `/company/<ID>/` lives ONLY on the profile, under the
+  // Experience section. We take the FIRST such link below the "Experience" heading —
+  // that's the current/primary role — plus its company name. Numeric ID → the About
+  // page is `/company/<ID>/about/`.
+  function companyUrlFromHref(href) {
+    if (!href) return null;
+    try {
+      const u = new URL(href, "https://www.linkedin.com");
+      const m = u.pathname.match(/\/company\/([^/?#]+)/);
+      return m ? { id: m[1], url: "https://www.linkedin.com/company/" + m[1] + "/" } : null;
+    } catch { return null; }
+  }
+
+  function parseProfileExperience(doc) {
+    const d = doc || (typeof document !== "undefined" ? document : null);
+    if (!d) return null;
+
+    // Anchor on the "Experience" heading (h2/h3, en + sv), then scan only what follows it.
+    let heading = null;
+    for (const h of d.querySelectorAll("h2, h3")) {
+      if (/^(experience|erfarenhet)$/i.test(clean(h.textContent))) { heading = h; break; }
+    }
+    // Collect /company/ anchors that appear after the heading in document order.
+    const anchors = [...d.querySelectorAll('a[href*="/company/"]')];
+    const ordered = heading
+      ? anchors.filter((a) => heading.compareDocumentPosition(a) & 4 /* FOLLOWING */)
+      : anchors;
+
+    for (const a of ordered) {
+      const co = companyUrlFromHref(a.getAttribute("href"));
+      if (!co) continue;
+      // Name: the logo link carries an aria-label "… logo" / alt; otherwise the text link
+      // next to it. Prefer a non-empty, reasonable company string.
+      let name = "";
+      const labelled = a.querySelector('[aria-label$="logo"], img[alt$="logo"], [aria-label]');
+      if (labelled) {
+        const al = labelled.getAttribute("aria-label") || labelled.getAttribute("alt") || "";
+        name = clean(al.replace(/\s+logo$/i, ""));
+      }
+      if (!name) name = clean(a.textContent);
+      // Skip the bare logo anchor if its sibling text anchor gives a better name later;
+      // but a usable id is enough to proceed.
+      return { name: name || null, companyId: co.id, linkedinUrl: co.url };
+    }
+    return null;
+  }
+
   function companyLinkedInUrl(doc) {
     const href = (typeof location !== "undefined" && location.href) ||
       doc.querySelector('link[rel="canonical"]')?.getAttribute("href") || "";
@@ -280,6 +328,7 @@
     clean, cleanProfileUrl, handleFromUrl, lanFromLocation,
     parseCompany, parseCard, scanDocument,
     unwrapRedirect, extractWebsite, parseCompanyPage, organizationFromJsonLd,
+    parseProfileExperience,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;
