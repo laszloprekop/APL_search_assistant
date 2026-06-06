@@ -286,8 +286,8 @@ function ExpandedRow({
           </div>
         </div>
 
-        {/* Right: one merged list, grouped by Persons + generic company contact points. */}
-        <div className="space-y-3">
+        {/* Right: one merged list, grouped by Persons + generic company contact points (2/3 width). */}
+        <div className="space-y-3 md:col-span-2">
           <div>
             <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
               <Icon name="account-multiple" /> Persons
