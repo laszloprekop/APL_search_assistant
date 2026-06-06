@@ -111,7 +111,6 @@ export function CompanyTable({
                     <div data-noexpand className="cursor-text text-xs text-slate-400">
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
                     </div>
-                    <StepRow c={c} onStep={(k) => startStep(c, k)} />
                   </td>
                   <td className="px-3 py-2 align-top">
                     {c.persons.length === 0 ? (
@@ -164,6 +163,17 @@ export function CompanyTable({
                     >
                       <Icon name="trash-can-outline" />
                     </button>
+                  </td>
+                </tr>
+                {/* Step actions on their own full-width row so they never wrap. Attached to the
+                    company row above (no divider) and sharing its open/hover background. */}
+                <tr
+                  onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
+                  className={`!border-t-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
+                >
+                  <td></td>
+                  <td colSpan={7} className="px-3 pb-2 pt-0">
+                    <StepRow c={c} onStep={(k) => startStep(c, k)} />
                   </td>
                 </tr>
                 {open.has(c.id) && (
