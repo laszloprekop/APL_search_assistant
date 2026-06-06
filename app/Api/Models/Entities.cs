@@ -110,3 +110,15 @@ public class Outreach
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? SentAt { get; set; }
 }
+
+/// <summary>A submitted ≥15-list to apl@lexicon.se (PRD §6.4): a timestamped snapshot of exactly
+/// what was sent (recipient, subject, body, CSV) plus which companies were included.</summary>
+public class LexiconSubmission
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? SentAt { get; set; }
+    public int CompanyCount { get; set; }
+    public string? CompanyIdsJson { get; set; }
+    public string? SnapshotJson { get; set; } // { to, subject, body, csv } at submit time
+}

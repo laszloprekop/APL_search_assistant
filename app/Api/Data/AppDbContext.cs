@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Setting> Settings => Set<Setting>();
     public DbSet<Template> Templates => Set<Template>();
     public DbSet<Outreach> Outreach => Set<Outreach>();
+    public DbSet<LexiconSubmission> LexiconSubmissions => Set<LexiconSubmission>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -24,6 +25,7 @@ public class AppDbContext : DbContext
         b.Entity<ContactInfo>().Property(x => x.Id).ValueGeneratedNever();
         b.Entity<Template>().Property(x => x.Id).ValueGeneratedNever();
         b.Entity<Outreach>().Property(x => x.Id).ValueGeneratedNever();
+        b.Entity<LexiconSubmission>().Property(x => x.Id).ValueGeneratedNever();
 
         b.Entity<Company>(e =>
         {

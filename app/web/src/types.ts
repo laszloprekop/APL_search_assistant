@@ -189,6 +189,35 @@ export interface Outreach {
   sentAt?: string | null;
 }
 
+// ---- M5: Lexicon ≥15-list submission ----
+export interface LexiconRow {
+  foretag: string;
+  ort?: string | null;
+  kontaktperson?: string | null;
+  titel?: string | null;
+  epost?: string | null;
+  telefon?: string | null;
+}
+
+export interface LexiconPreview {
+  to: string;
+  subject?: string | null;
+  body: string;
+  table: string;
+  csv: string;
+  rows: LexiconRow[];
+  companyIds: string[];
+  count: number;
+  target: number;
+}
+
+export interface LexiconSubmission {
+  id: string;
+  createdAt: string;
+  sentAt?: string | null;
+  companyCount: number;
+}
+
 export interface WebsiteCandidate {
   url: string;
   title: string;

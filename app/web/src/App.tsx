@@ -9,6 +9,7 @@ import { ImportPanel } from "./components/ImportPanel";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { OutboxPanel } from "./components/OutboxPanel";
 import { TemplatesPanel } from "./components/TemplatesPanel";
+import { LexiconPanel } from "./components/LexiconPanel";
 
 function App() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -16,7 +17,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
-  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates">("none");
+  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates" | "lexicon">("none");
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +74,11 @@ function App() {
             <p className="text-sm text-slate-400">Company pipeline · M1</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setPanel(panel === "lexicon" ? "none" : "lexicon")}
+              title="Generate + submit the ≥15 Lexicon list"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              <Icon name="format-list-checks" className="text-indigo-500" /> Lexicon list
+            </button>
             <button onClick={() => setPanel(panel === "outbox" ? "none" : "outbox")}
               title="Outbox — outreach activity log"
               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
@@ -112,6 +118,7 @@ function App() {
         {panel === "settings" && <div className="mb-4"><SettingsPanel onClose={() => setPanel("none")} onSaved={load} /></div>}
         {panel === "outbox" && <div className="mb-4"><OutboxPanel onClose={() => setPanel("none")} /></div>}
         {panel === "templates" && <div className="mb-4"><TemplatesPanel onClose={() => setPanel("none")} /></div>}
+        {panel === "lexicon" && <div className="mb-4"><LexiconPanel onClose={() => setPanel("none")} /></div>}
 
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-slate-400"><Icon name="filter-variant" /> Filter</span>

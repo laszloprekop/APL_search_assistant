@@ -1,7 +1,8 @@
 import type {
   Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
-  FindWebsiteResponse, ImportResult, Outreach, OutreachDraft, OutreachDraftRequest, OutreachLogRequest,
-  OutreachSettings, OutreachStatus, SearchStatus, Settings, SettingsUpdate, Stats, Template, TemplateKind,
+  FindWebsiteResponse, ImportResult, LexiconPreview, LexiconSubmission, Outreach, OutreachDraft,
+  OutreachDraftRequest, OutreachLogRequest, OutreachSettings, OutreachStatus, SearchStatus, Settings,
+  SettingsUpdate, Stats, Template, TemplateKind,
 } from "./types";
 
 const BASE = "/api";
@@ -87,6 +88,14 @@ export const api = {
     http<Outreach[]>(`/outreach${companyId ? `?companyId=${companyId}` : ""}`),
   deleteOutreach: (id: string) =>
     http<void>(`/outreach/${id}`, { method: "DELETE" }),
+
+  // ---- M5: Lexicon list ----
+  lexiconPreview: () => http<LexiconPreview>("/lexicon/preview"),
+  lexiconSubmit: (dto: { companyIds: string[]; to: string; subject?: string | null; body: string; csv: string }) =>
+    http<LexiconSubmission>("/lexicon/submit", { method: "POST", body: JSON.stringify(dto) }),
+  lexiconSubmissions: () => http<LexiconSubmission[]>("/lexicon/submissions"),
+  deleteLexiconSubmission: (id: string) =>
+    http<void>(`/lexicon/submissions/${id}`, { method: "DELETE" }),
 };
 
 // Build a full update DTO from a company, overriding some fields.

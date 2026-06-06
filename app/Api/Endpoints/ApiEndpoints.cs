@@ -609,6 +609,66 @@ public static class ApiEndpoints
             return Results.NoContent();
         });
 
+        // ---- M5: Lexicon ≥15-list submission (PRD §6.4, no auto-send) ----------
+        // Build the list from every company that's ready (real email + phone). The cover email
+        // comes from the Lexicon template ({{your_*}} + {{count}}/{{list_table}}); the CSV is
+        // downloaded and attached by the user; nothing is dispatched here.
+        api.MapGet("/lexicon/preview", async (AppDbContext db) =>
+        {
+            var companies = (await db.Companies.Include(c => c.Persons).Include(c => c.Contacts).ToListAsync())
+                .Where(IsReadyForList).OrderBy(c => c.Name).ToList();
+            var rows = companies.Select(BuildLexRow).ToList();
+            var table = BuildLexTable(rows);
+            var csv = BuildLexCsv(rows);
+
+            var consts = await OutreachService.LoadConstantsAsync(db);
+            var tpl = await db.Templates.FirstOrDefaultAsync(t => t.Kind == TemplateKind.Lexicon);
+            var fields = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["your_name"] = consts.GetValueOrDefault("your_name"),
+                ["your_email"] = consts.GetValueOrDefault("your_email"),
+                ["your_phone"] = consts.GetValueOrDefault("your_phone"),
+                ["count"] = rows.Count.ToString(),
+                ["list_table"] = table,
+            };
+            var subject = OutreachService.Render(tpl?.Subject, fields);
+            var body = OutreachService.Render(tpl?.Body ?? "", fields);
+            return Results.Ok(new LexiconPreviewDto(
+                "apl@lexicon.se", string.IsNullOrEmpty(subject) ? null : subject, body, table, csv,
+                rows, companies.Select(c => c.Id).ToList(), rows.Count, 15));
+        });
+
+        api.MapPost("/lexicon/submit", async (AppDbContext db, LexiconSubmitDto dto) =>
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Serialize(new { dto.To, dto.Subject, dto.Body, dto.Csv });
+            var sub = new LexiconSubmission
+            {
+                CompanyCount = dto.CompanyIds.Count,
+                CompanyIdsJson = System.Text.Json.JsonSerializer.Serialize(dto.CompanyIds),
+                SnapshotJson = snapshot,
+                SentAt = DateTimeOffset.UtcNow,
+            };
+            db.LexiconSubmissions.Add(sub);
+            await db.SaveChangesAsync();
+            return Results.Ok(new LexiconSubmissionDto(sub.Id, sub.CreatedAt, sub.SentAt, sub.CompanyCount));
+        });
+
+        api.MapGet("/lexicon/submissions", async (AppDbContext db) =>
+        {
+            var list = (await db.LexiconSubmissions.ToListAsync()).OrderByDescending(s => s.CreatedAt)
+                .Select(s => new LexiconSubmissionDto(s.Id, s.CreatedAt, s.SentAt, s.CompanyCount)).ToList();
+            return Results.Ok(list);
+        });
+
+        api.MapDelete("/lexicon/submissions/{id:guid}", async (AppDbContext db, Guid id) =>
+        {
+            var s = await db.LexiconSubmissions.FindAsync(id);
+            if (s is null) return Results.NotFound();
+            db.LexiconSubmissions.Remove(s);
+            await db.SaveChangesAsync();
+            return Results.NoContent();
+        });
+
         // ---- company-page capture from the extension (LinkedIn About, PRD §6.1) ----
         api.MapPost("/companies/upsert", async (AppDbContext db, List<CompanyImportRow> rows) =>
         {
@@ -720,6 +780,51 @@ public static class ApiEndpoints
     private static OutreachDto ToOutreachDto(Outreach o, Company? c, Person? p) =>
         new(o.Id, o.CompanyId, c?.Name ?? "", o.PersonId, p?.Name, o.Channel, o.Kind, o.Status,
             o.Subject, o.Body, o.Outcome, o.CreatedAt, o.SentAt);
+
+    // One Lexicon-list row: pick the kontaktperson whose attributed contacts cover the most of
+    // email/phone, then their (or the generic) real email + phone. Company is ready, so both exist.
+    private static LexiconRowDto BuildLexRow(Company c)
+    {
+        var emails = c.Contacts.Where(x => x.Type == ContactType.Email && x.Source != ContactSource.Guessed).ToList();
+        var phones = c.Contacts.Where(x => x.Type == ContactType.Phone && x.Source != ContactSource.Guessed).ToList();
+
+        Person? best = null; var bestScore = 0;
+        foreach (var p in c.Persons)
+        {
+            var score = emails.Count(e => e.PersonId == p.Id) + phones.Count(ph => ph.PersonId == p.Id);
+            if (score > bestScore) { bestScore = score; best = p; }
+        }
+        string? Pick(List<ContactInfo> xs, Guid? pid) =>
+            (pid is { } id ? xs.FirstOrDefault(x => x.PersonId == id)?.Value : null)
+            ?? xs.FirstOrDefault(x => x.PersonId == null)?.Value
+            ?? xs.FirstOrDefault()?.Value;
+
+        var ort = string.IsNullOrWhiteSpace(c.LocationKommun) ? c.LocationLan : c.LocationKommun;
+        return new(c.Name, ort, best?.Name, best?.Title, Pick(emails, best?.Id), Pick(phones, best?.Id));
+    }
+
+    private static string BuildLexCsv(List<LexiconRowDto> rows)
+    {
+        static string Cell(string? v)
+        {
+            var s = v ?? "";
+            return s.Contains(',') || s.Contains('"') || s.Contains('\n') ? "\"" + s.Replace("\"", "\"\"") + "\"" : s;
+        }
+        var sb = new System.Text.StringBuilder();
+        sb.Append("Företag,Ort,Kontaktperson,Titel,E-post,Telefon\n");
+        foreach (var r in rows)
+            sb.Append(string.Join(",", new[] { r.Foretag, r.Ort, r.Kontaktperson, r.Titel, r.Epost, r.Telefon }.Select(Cell))).Append('\n');
+        return sb.ToString();
+    }
+
+    private static string BuildLexTable(List<LexiconRowDto> rows)
+    {
+        var sb = new System.Text.StringBuilder();
+        var i = 1;
+        foreach (var r in rows)
+            sb.Append($"{i++}. {r.Foretag} · {r.Ort} · {r.Kontaktperson} ({r.Titel}) · {r.Epost} · {r.Telefon}\n");
+        return sb.ToString();
+    }
 
     private static CompanyDto ToDto(Company c)
     {

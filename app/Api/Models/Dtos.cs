@@ -91,3 +91,11 @@ public record OutreachDto(
     Guid Id, Guid CompanyId, string CompanyName, Guid? PersonId, string? PersonName,
     OutreachChannel Channel, OutreachKind Kind, OutreachLogStatus Status,
     string? Subject, string? Body, string? Outcome, DateTimeOffset CreatedAt, DateTimeOffset? SentAt);
+
+// ---- M5: Lexicon ≥15-list submission (PRD §6.4) ----
+public record LexiconRowDto(string Foretag, string? Ort, string? Kontaktperson, string? Titel, string? Epost, string? Telefon);
+public record LexiconPreviewDto(
+    string To, string? Subject, string Body, string Table, string Csv,
+    List<LexiconRowDto> Rows, List<Guid> CompanyIds, int Count, int Target);
+public record LexiconSubmitDto(List<Guid> CompanyIds, string To, string? Subject, string Body, string Csv);
+public record LexiconSubmissionDto(Guid Id, DateTimeOffset CreatedAt, DateTimeOffset? SentAt, int CompanyCount);
