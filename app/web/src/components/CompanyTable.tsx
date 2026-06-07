@@ -179,7 +179,7 @@ export function CompanyTable({
                 <tr onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
                   className={headerHover}>
                   <td></td>
-                  <td colSpan={7} className="px-3 pb-2 pt-1">
+                  <td colSpan={7} className="px-3 pb-2 -pt-1">
                     <StepRow c={c} onStep={(k) => startStep(c, k)} />
                   </td>
                 </tr>

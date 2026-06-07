@@ -34,3 +34,7 @@
 :root { color-scheme: light; }
 html, body, #root { height: 100%; }
 body { margin: 0; font-family: var(--font-sans); }
+
+/* Render every MDI icon one notch larger than its surrounding text (the glyph inherits the
+   element's font-size, so this scales proportionally for text-xs … text-3xl icons alike). */
+.mdi::before { font-size: 1.2em; }
