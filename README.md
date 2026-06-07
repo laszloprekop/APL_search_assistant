@@ -70,8 +70,10 @@ Each rung below removes a specific manual grind; you can stop at any rung.
 > **The grind:** keeping a scattered spreadsheet of who you contacted, when, and whether they
 > replied — and eyeballing whether you've hit the ≥15-host bar.
 
-Use the app purely as a pipeline board. **Add companies by hand** or **import** a batch, attach
-email/phone/LinkedIn contact points, and move each one through
+Use the app purely as a pipeline board. **Add companies by hand**, or **paste in a spreadsheet**
+(Import / Export → copy a range from a Google Sheet and paste the tab-separated rows — a Swedish
+*company discovery list* and a *per-person contact tracker* layout are recognized, with the header
+row optional). Attach email/phone/LinkedIn contact points, and move each one through
 `Identified → Enriched → Ready → Contacted → Replied → Closed` yourself. Every contact point
 carries its own status (`Not contacted → Contacted → Replied → Bounced → Closed`), and the **“≥15
 ready” counter** does the bookkeeping — it only counts companies with *both* a real email and
@@ -135,6 +137,10 @@ When ≥15 companies are **Ready**, the **Lexicon list generator** produces a **
 open the email + attach → mark submitted* flow that **snapshots exactly what was sent**. The same
 CSV is a tidy, shareable export of your ready-to-reach-out companies and people.
 
+For ad-hoc sharing, **Import / Export → Export** copies the **current table view** (respecting your
+stage / ready-only filter) as tab-separated rows in either sheet layout — paste it straight back
+into a Google Sheet to hand off or collaborate.
+
 ## How it flows — inputs to outputs
 
 ```mermaid
@@ -143,7 +149,8 @@ flowchart LR
     LI["LinkedIn<br/>people search"]
     AB["allabolag.se<br/>page"]
     WEB["Company<br/>website"]
-    MAN["Manual add<br/>/ import"]
+    MAN["Manual add"]
+    SS["Spreadsheet<br/>paste (TSV)"]
   end
 
   subgraph EXT["Browser extension"]
@@ -163,18 +170,21 @@ flowchart LR
     DRAFT["Email / LinkedIn / phone<br/>drafts (you send)"]
     OBX["Outbox log"]
     LEX["Lexicon ≥15<br/>CSV + cover"]
+    XPT["Spreadsheet<br/>export (TSV)"]
   end
 
   LI --> CAP --> PIPE
   LI --> WIZ --> PIPE
   AB --> ABC --> PIPE
   MAN --> PIPE
+  SS --> PIPE
   WEB --> ENR
   PIPE --> ENR --> PIPE
   PIPE --> TPL --> OUT
   OUT --> DRAFT
   OUT --> OBX
   PIPE -- "when ≥15 ready" --> LEX
+  PIPE --> XPT
 ```
 
 ## Tech stack

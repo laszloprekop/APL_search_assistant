@@ -255,6 +255,99 @@ public static class ApiEndpoints
             return Results.Ok(new ImportResult(companiesCreated, personsAdded, skipped, touched));
         });
 
+        // ---- spreadsheet import (PRD §6.1) -----------------------------------
+        // Generic, layout-agnostic upsert: the web client maps each supported sheet (discovery
+        // list, per-person contact tracker) onto SheetImportRow and posts a batch. We match an
+        // existing company by website host first (survives name drift), then by name; create if
+        // neither hits. Non-empty company fields are never clobbered; persons dedupe by name and
+        // contacts by (type, value), so re-pasting the same sheet is idempotent.
+        api.MapPost("/companies/import-sheet", async (AppDbContext db, List<SheetImportRow> rows) =>
+        {
+            int companiesCreated = 0, personsAdded = 0, skipped = 0;
+            var touched = new List<Guid>();
+            var companies = await db.Companies.Include(c => c.Persons).Include(c => c.Contacts).ToListAsync();
+
+            static string? Host(string? url)
+            {
+                if (string.IsNullOrWhiteSpace(url)) return null;
+                var s = System.Text.RegularExpressions.Regex.Replace(url.Trim().ToLowerInvariant(), @"^https?://", "");
+                if (s.StartsWith("www.")) s = s[4..];
+                var slash = s.IndexOfAny(new[] { '/', '?', '#' });
+                if (slash >= 0) s = s[..slash];
+                return string.IsNullOrWhiteSpace(s) ? null : s.TrimEnd('.');
+            }
+            static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+            static string MergeNote(string? existing, string add) =>
+                string.IsNullOrWhiteSpace(existing) ? add
+                : existing.Contains(add, StringComparison.OrdinalIgnoreCase) ? existing
+                : existing + "\n" + add;
+            static void AddContact(Company company, Person? person, ContactType type, string? value, ContactSource source)
+            {
+                var v = Clean(value);
+                if (v is null) return;
+                if (company.Contacts.Any(x => x.Type == type && string.Equals(x.Value, v, StringComparison.OrdinalIgnoreCase))) return;
+                company.Contacts.Add(new ContactInfo
+                {
+                    CompanyId = company.Id, PersonId = person?.Id, Type = type, Value = v, Source = source,
+                });
+            }
+
+            foreach (var r in rows)
+            {
+                var name = Clean(r.Name);
+                if (name is null) { skipped++; continue; }
+
+                var host = Host(r.Website);
+                Company? company = host is not null
+                    ? companies.FirstOrDefault(c => Host(c.Website) == host)
+                    : null;
+                company ??= companies.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                if (company is null)
+                {
+                    company = new Company { Name = name, Source = CompanySource.Manual };
+                    db.Companies.Add(company);
+                    companies.Add(company);
+                    companiesCreated++;
+                }
+
+                // Fill only empty company scalars — never overwrite data already in the app.
+                if (string.IsNullOrWhiteSpace(company.Website)) company.Website = Clean(r.Website) ?? company.Website;
+                if (string.IsNullOrWhiteSpace(company.OrgNumber)) company.OrgNumber = Clean(r.OrgNumber) ?? company.OrgNumber;
+                if (string.IsNullOrWhiteSpace(company.LocationKommun)) company.LocationKommun = Clean(r.LocationKommun) ?? company.LocationKommun;
+                if (string.IsNullOrWhiteSpace(company.LocationLan)) company.LocationLan = Clean(r.LocationLan) ?? company.LocationLan;
+                if (string.IsNullOrWhiteSpace(company.TechStackGuess)) company.TechStackGuess = Clean(r.TechStackGuess) ?? company.TechStackGuess;
+                if (Clean(r.Notes) is { } note) company.Notes = MergeNote(company.Notes, note);
+
+                Person? person = null;
+                if (Clean(r.PersonName) is { } pname)
+                {
+                    person = company.Persons.FirstOrDefault(p => string.Equals(p.Name, pname, StringComparison.OrdinalIgnoreCase));
+                    if (person is null)
+                    {
+                        person = new Person { Name = pname, Title = Clean(r.PersonTitle), Notes = Clean(r.PersonNotes), LinkedInUrl = Clean(r.LinkedInUrl) };
+                        company.Persons.Add(person);
+                        personsAdded++;
+                    }
+                    else
+                    {
+                        person.Title ??= Clean(r.PersonTitle);
+                        person.Notes ??= Clean(r.PersonNotes);
+                        person.LinkedInUrl ??= Clean(r.LinkedInUrl);
+                    }
+                }
+
+                AddContact(company, person, ContactType.Email, r.Email, ContactSource.Manual);
+                AddContact(company, person, ContactType.Phone, r.Phone, r.PhoneIsSwitchboard ? ContactSource.Switchboard : ContactSource.Manual);
+                AddContact(company, person, ContactType.LinkedIn, r.LinkedInUrl, ContactSource.LinkedIn);
+
+                if (!touched.Contains(company.Id)) touched.Add(company.Id);
+            }
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new ImportResult(companiesCreated, personsAdded, skipped, touched));
+        });
+
         // ---- enrichment: cautious public-website fetch (PRD §6.2) ------------
         api.MapPost("/companies/{id:guid}/enrich", async (AppDbContext db, EnrichmentService svc, SearchService search, Guid id, EnrichRequest? body) =>
         {

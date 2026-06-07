@@ -44,6 +44,16 @@ public record CaptureRow(
 
 public record ImportResult(int CompaniesCreated, int PersonsAdded, int DuplicatesSkipped, List<Guid> CompanyIds);
 
+/// <summary>A normalized spreadsheet row (PRD §6.1 manual import). The web client maps each
+/// supported sheet layout (discovery list, per-person contact tracker, …) onto this shape, then
+/// posts a batch. Upserted by website host / name; persons deduped by name on the company;
+/// contacts deduped by (type, value). Existing non-empty company fields are never overwritten.</summary>
+public record SheetImportRow(
+    string? Name, string? Website, string? OrgNumber,
+    string? LocationKommun, string? LocationLan, string? Notes, string? TechStackGuess,
+    string? PersonName, string? PersonTitle, string? PersonNotes,
+    string? Email, string? Phone, bool PhoneIsSwitchboard = false, string? LinkedInUrl = null);
+
 /// <summary>Company-level data captured from a LinkedIn company About page (PRD §6.1).</summary>
 public record CompanyImportRow(
     string Name, string? Website, string? Industry, string? CompanySize,

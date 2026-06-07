@@ -2,7 +2,7 @@ import type {
   Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
   FindWebsiteResponse, ImportResult, LexiconPreview, LexiconSubmission, Outreach, OutreachDraft,
   OutreachDraftRequest, OutreachLogRequest, OutreachSettings, OutreachStatus, SearchStatus, Settings,
-  SettingsUpdate, Stats, Template, TemplateKind,
+  SettingsUpdate, SheetImportRow, Stats, Template, TemplateKind,
 } from "./types";
 
 const BASE = "/api";
@@ -53,6 +53,9 @@ export const api = {
 
   importCapture: (rows: unknown[]) =>
     http<ImportResult>("/companies/import", { method: "POST", body: JSON.stringify(rows) }),
+
+  importSheet: (rows: SheetImportRow[]) =>
+    http<ImportResult>("/companies/import-sheet", { method: "POST", body: JSON.stringify(rows) }),
 
   enrich: (id: string, website?: string) =>
     http<EnrichResponse>(`/companies/${id}/enrich`, {

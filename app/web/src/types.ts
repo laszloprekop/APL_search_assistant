@@ -98,6 +98,25 @@ export interface ImportResult {
   companyIds: string[];
 }
 
+// A normalized spreadsheet row (mirrors SheetImportRow in app/Api/Models/Dtos.cs). The web client
+// maps each supported sheet layout onto this shape before posting to /companies/import-sheet.
+export interface SheetImportRow {
+  name: string;
+  website?: string | null;
+  orgNumber?: string | null;
+  locationKommun?: string | null;
+  locationLan?: string | null;
+  notes?: string | null;
+  techStackGuess?: string | null;
+  personName?: string | null;
+  personTitle?: string | null;
+  personNotes?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  phoneIsSwitchboard?: boolean;
+  linkedInUrl?: string | null;
+}
+
 export interface EnrichResponse {
   company: Company;
   ok: boolean;
