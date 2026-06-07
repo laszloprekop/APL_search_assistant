@@ -42,7 +42,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
           return (
             <span
               key={s.value}
-              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${stageMeta(s.value).badge}`}
+              className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${stageMeta(s.value).badge}`}
             >
               {s.label} <span className="opacity-60">{n}</span>
             </span>

@@ -6,13 +6,13 @@ export function Icon({ name, className, title }: { name: string; className?: str
 }
 
 export const STAGES: { value: CompanyStage; label: string; badge: string }[] = [
-  { value: "Identified", label: "Identified", badge: "bg-surface-hover text-muted ring-border" },
-  { value: "Enriched", label: "Enriched", badge: "bg-brand text-white ring-brand" },
-  { value: "Ready", label: "Ready", badge: "bg-accent text-brand ring-accent-strong" },
-  { value: "Contacted", label: "Contacted", badge: "bg-warning text-white ring-warning" },
-  { value: "Replied", label: "Replied", badge: "bg-success text-white ring-success" },
-  { value: "ClosedPositive", label: "Closed ✓", badge: "bg-success text-white ring-success" },
-  { value: "ClosedNegative", label: "Closed ✗", badge: "bg-danger text-white ring-danger" },
+  { value: "Identified", label: "Identified", badge: "bg-input text-muted" },
+  { value: "Enriched", label: "Enriched", badge: "bg-brand text-white" },
+  { value: "Ready", label: "Ready", badge: "bg-accent text-brand" },
+  { value: "Contacted", label: "Contacted", badge: "bg-warning text-white" },
+  { value: "Replied", label: "Replied", badge: "bg-success text-white" },
+  { value: "ClosedPositive", label: "Closed ✓", badge: "bg-success text-white" },
+  { value: "ClosedNegative", label: "Closed ✗", badge: "bg-danger text-white" },
 ];
 export const stageMeta = (s: CompanyStage) => STAGES.find((x) => x.value === s) ?? STAGES[0];
 

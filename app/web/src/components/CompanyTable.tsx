@@ -150,7 +150,7 @@ export function CompanyTable({
                     <select
                       value={c.stage}
                       onChange={(e) => onChangeStage(c, e.target.value as CompanyStage)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ring-1 ${stageMeta(c.stage).badge}`}
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-accent/60 ${stageMeta(c.stage).badge}`}
                     >
                       {STAGES.map((s) => (
                         <option key={s.value} value={s.value}>{s.label}</option>
@@ -550,11 +550,11 @@ function EnrichmentSection({
 
 // Per-contact reach-out status options + colors.
 const OUTREACH: { value: OutreachStatus; label: string; cls: string }[] = [
-  { value: "NotContacted", label: "Not contacted", cls: "text-muted ring-border bg-surface-hover" },
-  { value: "Contacted", label: "Contacted", cls: "text-white ring-warning bg-warning" },
-  { value: "Replied", label: "Replied", cls: "text-white ring-success bg-success" },
-  { value: "Bounced", label: "Bounced", cls: "text-white ring-danger bg-danger" },
-  { value: "Closed", label: "Closed", cls: "text-faint ring-border bg-surface-hover" },
+  { value: "NotContacted", label: "Not contacted", cls: "text-muted bg-input" },
+  { value: "Contacted", label: "Contacted", cls: "text-white bg-warning" },
+  { value: "Replied", label: "Replied", cls: "text-white bg-success" },
+  { value: "Bounced", label: "Bounced", cls: "text-white bg-danger" },
+  { value: "Closed", label: "Closed", cls: "text-faint bg-input" },
 ];
 const outreachCls = (s?: OutreachStatus) => OUTREACH.find((o) => o.value === s)?.cls ?? OUTREACH[0].cls;
 
@@ -592,7 +592,7 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
       )}
       <select value={ct.outreachStatus ?? "NotContacted"} title="Reach-out status"
         onChange={(e) => ct.id && onSetStatus(ct.id, e.target.value as OutreachStatus)}
-        className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ${outreachCls(ct.outreachStatus)}`}>
+        className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium focus:outline-none focus:ring-2 focus:ring-accent/60 ${outreachCls(ct.outreachStatus)}`}>
         {OUTREACH.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
       <button onClick={() => ct.id && onDelete(ct.id)} className="shrink-0 opacity-40 hover:text-danger hover:opacity-100" title="Delete">
