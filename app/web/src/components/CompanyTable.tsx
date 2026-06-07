@@ -602,20 +602,18 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
   );
 }
 
-// Collapsed-row enrichment progression — the single source of step actions. A finished step is a
-// quiet capsule with a refresh icon (click to re-run); the next unfinished step is highlighted in
-// gold (the one thing to do next); later unfinished steps stay neutral. Colour is spent on the
-// single "do this next" action, not the whole row.
+// Collapsed-row enrichment progression — the single source of step actions. Two states only:
+// a finished step is a quiet white capsule with a refresh icon (click to re-run); every
+// unfinished step is a gold "next action" (the steps are independently runnable, so each open
+// one is fair game).
 function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts") => void }) {
   const wDone = !!c.website;
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
-  const activeStep = !wDone ? 1 : !kDone ? 2 : !oDone ? 3 : 0; // first unfinished step = the gold CTA
-  const pill = (done: boolean, active: boolean) =>
+  const pill = (done: boolean) =>
     `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
       done ? "bg-surface text-muted hover:bg-surface-hover"
-        : active ? "bg-accent text-brand hover:bg-accent-strong"
-        : "bg-surface-hover text-brand hover:bg-border"}`;
+        : "bg-accent text-brand hover:bg-accent-strong"}`;
   const mark = (n: number, done: boolean) =>
     done ? <Icon name="refresh" className="opacity-50" />
       : <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-[9px] font-bold text-white">{n}</span>;
@@ -623,19 +621,19 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
       <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
         onClick={(e) => { e.stopPropagation(); onStep("website"); }}
-        className={pill(wDone, activeStep === 1)}>
+        className={pill(wDone)}>
         {mark(1, wDone)} Find Company Website
       </button>
       <Icon name="chevron-right" className="opacity-40" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
-        className={pill(kDone, activeStep === 2)}>
+        className={pill(kDone)}>
         {mark(2, kDone)} Scan Company Contacts
       </button>
       <Icon name="chevron-right" className="opacity-40" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className={pill(oDone, activeStep === 3)}>
+        className={pill(oDone)}>
         {mark(3, oDone)} Scan Allabolag
       </a>
     </div>
