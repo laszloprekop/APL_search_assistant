@@ -4,9 +4,9 @@ import { api } from "../api";
 import { Icon } from "../lib/ui";
 
 const channelMeta: Record<OutreachChannel, { icon: string; cls: string }> = {
-  Email: { icon: "email-outline", cls: "text-indigo-500" },
-  Linkedin: { icon: "linkedin", cls: "text-[#0a66c2]" },
-  Phone: { icon: "phone-outline", cls: "text-emerald-600" },
+  Email: { icon: "email-outline", cls: "text-brand" },
+  Linkedin: { icon: "linkedin", cls: "text-linkedin" },
+  Phone: { icon: "phone-outline", cls: "text-success" },
 };
 
 const fmt = (iso: string) => new Date(iso).toLocaleString();
@@ -25,23 +25,23 @@ export function OutboxPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 font-semibold text-slate-700">
-          <Icon name="tray-full" className="text-indigo-500" /> Outbox
-          {items && <span className="text-sm font-normal text-slate-400">· {items.length}</span>}
+        <h3 className="flex items-center gap-1.5 font-semibold text-brand">
+          <Icon name="tray-full" className="text-brand" /> Outbox
+          {items && <span className="text-sm font-normal text-faint">· {items.length}</span>}
         </h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icon name="close" /></button>
+        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
       </div>
 
       {items === null ? (
-        <p className="text-sm text-slate-400">Loading…</p>
+        <p className="text-sm text-faint">Loading…</p>
       ) : items.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400">
+        <p className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-faint">
           Nothing logged yet. Use a company's Outreach card, then mark it sent/logged.
         </p>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-border">
           {items.map((o) => {
             const m = channelMeta[o.channel];
             return (
@@ -49,17 +49,17 @@ export function OutboxPanel({ onClose }: { onClose: () => void }) {
                 <Icon name={m.icon} className={`mt-0.5 shrink-0 ${m.cls}`} title={o.channel} />
                 <div className="min-w-0 grow">
                   <div className="flex flex-wrap items-center gap-x-2">
-                    <span className="font-medium text-slate-700">{o.companyName}</span>
-                    {o.personName && <span className="text-xs text-slate-400">· {o.personName}</span>}
-                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    <span className="font-medium text-brand">{o.companyName}</span>
+                    {o.personName && <span className="text-xs text-faint">· {o.personName}</span>}
+                    <span className="rounded-lg bg-surface-hover px-1.5 py-0.5 text-[10px] font-medium text-muted">
                       {o.kind === "Followup" ? "follow-up" : o.channel.toLowerCase()} · {o.status.toLowerCase()}
                     </span>
-                    <span className="text-[11px] text-slate-400">{fmt(o.sentAt ?? o.createdAt)}</span>
+                    <span className="text-[11px] text-faint">{fmt(o.sentAt ?? o.createdAt)}</span>
                   </div>
-                  {o.subject && <div className="truncate text-xs text-slate-500">{o.subject}</div>}
-                  {o.outcome && <div className="text-xs text-slate-500">↳ {o.outcome}</div>}
+                  {o.subject && <div className="truncate text-xs text-muted">{o.subject}</div>}
+                  {o.outcome && <div className="text-xs text-muted">↳ {o.outcome}</div>}
                 </div>
-                <button onClick={() => del(o.id)} className="shrink-0 text-slate-300 hover:text-rose-500" title="Remove entry">
+                <button onClick={() => del(o.id)} className="shrink-0 text-faint hover:text-danger" title="Remove entry">
                   <Icon name="close" />
                 </button>
               </li>

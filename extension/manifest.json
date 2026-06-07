@@ -1,29 +1,29 @@
 {
   "manifest_version": 3,
   "name": "APL Search Assistant — LinkedIn Capture",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "User-initiated capture of LinkedIn people-search results + a guided, click-only website-enrichment wizard (profile → company About), plus allabolag.se company-data capture (org.nr / financials / switchboard phone) sent to the local APL Assistant app. Personal use; manual trigger only; no auto-crawling.",
   "permissions": ["storage"],
   "host_permissions": ["http://localhost:5099/*"],
   "content_scripts": [
     {
       "matches": ["https://www.linkedin.com/search/results/people/*"],
-      "js": ["parser.js", "content.js"],
+      "js": ["parser.js", "theme.js", "content.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.linkedin.com/in/*"],
-      "js": ["parser.js", "wizard.js"],
+      "js": ["parser.js", "theme.js", "wizard.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.linkedin.com/company/*"],
-      "js": ["parser.js", "wizard.js", "company.js"],
+      "js": ["parser.js", "theme.js", "wizard.js", "company.js"],
       "run_at": "document_idle"
     },
     {
       "matches": ["https://www.allabolag.se/*"],
-      "js": ["parser.js", "allabolag.js"],
+      "js": ["parser.js", "theme.js", "allabolag.js"],
       "run_at": "document_idle"
     }
   ]

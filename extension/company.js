@@ -68,23 +68,10 @@
     const sh = host.attachShadow({ mode: "open" });
     sh.innerHTML = `
       <style>
-        * { box-sizing:border-box; font-family:-apple-system,system-ui,sans-serif; }
-        .p { width:300px; background:#fff; color:#1d2226; border:1px solid #d0d5dd; border-radius:10px;
-          box-shadow:0 8px 28px rgba(0,0,0,.22); overflow:hidden; }
-        .h { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#057642; color:#fff; }
-        .h b { font-size:13px; } .min { margin-left:auto; cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; }
-        .b { padding:10px 12px; }
-        .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-        button { font-size:12px; padding:7px 8px; border:1px solid #d0d5dd; border-radius:6px; background:#f3f6f8; cursor:pointer; }
-        button:hover { background:#e9eef2; }
-        button.cap { background:#057642; color:#fff; border-color:#057642; font-weight:600; }
-        .out { margin-top:8px; border-top:1px solid #eef1f3; padding-top:6px; }
-        .f { display:flex; gap:8px; font-size:12px; padding:3px 0; } .k { color:#5e6b74; width:64px; flex:none; }
-        .v { color:#1d2226; word-break:break-all; } .v.miss { color:#b54708; }
-        .hint { font-size:12px; color:#8a939b; padding:4px 0; }
-        .status { margin-top:8px; font-size:11px; min-height:14px; color:#5e6b74; }
-        .status[data-kind=ok]{color:#057642;} .status[data-kind=err]{color:#b42318;} .status[data-kind=warn]{color:#b54708;}
-        .collapsed .b { display:none; }
+        ${globalThis.APL_THEME.base}
+        .p { width:300px; }
+        .k { width:64px; }
+        .hint { padding:4px 0; }
       </style>
       <div class="p" id="p">
         <div class="h"><b>APL · Company</b><button class="min" id="min" title="Minimize">▾</button></div>

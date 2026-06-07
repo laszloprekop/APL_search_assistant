@@ -51,16 +51,16 @@ export function CompanyTable({
 
   if (companies.length === 0)
     return (
-      <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-400">
+      <div className="rounded-2xl border border-dashed border-border bg-surface p-10 text-center text-faint">
         <Icon name="inbox-outline" className="text-3xl" />
         <p className="mt-2">No companies yet. Add one manually or import a LinkedIn capture.</p>
       </div>
     );
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       <table className="w-full text-left text-sm">
-        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-400">
+        <thead className="bg-surface-hover text-xs uppercase tracking-wide text-faint">
           <tr>
             <th className="w-8 px-3 py-2"></th>
             <th className="px-3 py-2">Company</th>
@@ -72,7 +72,7 @@ export function CompanyTable({
             <th className="px-3 py-2"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
+        <tbody className="divide-y divide-border">
           {companies.map((c) => {
             const person = c.persons[0];
             const em = enrichmentMeta(c.enrichmentStatus);
@@ -87,19 +87,19 @@ export function CompanyTable({
                     if (window.getSelection()?.toString()) return;
                     toggle(c.id);
                   }}
-                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
+                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
                 >
                   <td className="px-3 py-2 align-top">
-                    <button onClick={() => toggle(c.id)} className="text-slate-400 hover:text-slate-700">
+                    <button onClick={() => toggle(c.id)} className="text-faint hover:text-brand">
                       <Icon name={open.has(c.id) ? "chevron-down" : "chevron-right"} />
                     </button>
                   </td>
                   <td className="px-3 py-2 align-top">
-                    <div className="flex items-center gap-1.5 font-medium text-slate-800">
-                      <Icon name={sourceIcon(c.source)} className={c.source === "LinkedIn" ? "text-[#0a66c2]" : "text-slate-400"} title={c.source} />
+                    <div className="flex items-center gap-1.5 font-medium text-brand">
+                      <Icon name={sourceIcon(c.source)} className={c.source === "LinkedIn" ? "text-linkedin" : "text-faint"} title={c.source} />
                       {c.linkedInUrl ? (
                         <a href={c.linkedInUrl} target="_blank" rel="noreferrer"
-                          className="hover:text-[#0a66c2] hover:underline"
+                          className="hover:text-linkedin hover:underline"
                           title="Open LinkedIn company page">
                           {c.name}
                         </a>
@@ -107,36 +107,36 @@ export function CompanyTable({
                         <a
                           href={`https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(c.name)}`}
                           target="_blank" rel="noreferrer"
-                          className="decoration-dotted underline-offset-2 hover:text-[#0a66c2] hover:underline"
+                          className="decoration-dotted underline-offset-2 hover:text-linkedin hover:underline"
                           title="Search this company on LinkedIn (capture its page to save the exact URL)">
                           {c.name}
                         </a>
                       )}
                     </div>
-                    <div data-noexpand className="cursor-text text-xs text-slate-400">
+                    <div data-noexpand className="cursor-text text-xs text-faint">
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
                     </div>
                   </td>
                   <td className="px-3 py-2 align-top">
                     {c.persons.length === 0 ? (
-                      <span className="text-slate-300">—</span>
+                      <span className="text-faint">—</span>
                     ) : c.persons.length === 1 ? (
                       // Exactly one → safe to name. Several → a count, not an arbitrary pick.
-                      <div data-noexpand className="flex cursor-text items-center gap-1 text-slate-700">
-                        {person.linkedInUrl && <Icon name="linkedin" className="text-[#0a66c2]" title="LinkedIn profile" />}
+                      <div data-noexpand className="flex cursor-text items-center gap-1 text-brand">
+                        {person.linkedInUrl && <Icon name="linkedin" className="text-linkedin" title="LinkedIn profile" />}
                         <span>{person.name}</span>
                       </div>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-slate-500"
+                      <span className="inline-flex items-center gap-1 text-muted"
                         title="Several contacts — expand to see them all">
-                        <Icon name="account-multiple" className="text-slate-400" /> {c.persons.length} persons
+                        <Icon name="account-multiple" className="text-faint" /> {c.persons.length} persons
                       </span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-center align-top">
                     <span className="inline-flex gap-1.5">
-                      <Icon name="email" className={c.hasEmail ? "text-emerald-500" : "text-slate-200"} />
-                      <Icon name="phone" className={c.hasPhone ? "text-emerald-500" : "text-slate-200"} />
+                      <Icon name="email" className={c.hasEmail ? "text-success" : "text-border"} />
+                      <Icon name="phone" className={c.hasPhone ? "text-success" : "text-border"} />
                     </span>
                   </td>
                   <td className="px-3 py-2 text-center align-top" title={em.label}>
@@ -155,15 +155,15 @@ export function CompanyTable({
                   </td>
                   <td className="px-3 py-2 text-center align-top">
                     {c.readyForList ? (
-                      <Icon name="check-circle" className="text-green-500" />
+                      <Icon name="check-circle" className="text-success" />
                     ) : (
-                      <Icon name="circle-outline" className="text-slate-200" />
+                      <Icon name="circle-outline" className="text-border" />
                     )}
                   </td>
                   <td className="px-3 py-2 text-right align-top">
                     <button
                       onClick={() => onDelete(c.id)}
-                      className="text-slate-300 hover:text-rose-500"
+                      className="text-faint hover:text-danger"
                       title="Delete company"
                     >
                       <Icon name="trash-can-outline" />
@@ -174,7 +174,7 @@ export function CompanyTable({
                     company row above (no divider) and sharing its open/hover background. */}
                 <tr
                   onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
-                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-indigo-50/60" : "hover:bg-slate-50/70"}`}
+                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
                 >
                   <td></td>
                   <td colSpan={7} className="px-3 pb-2 pt-0">
@@ -182,7 +182,7 @@ export function CompanyTable({
                   </td>
                 </tr>
                 {open.has(c.id) && (
-                  <tr className="bg-indigo-50/60">
+                  <tr className="bg-accent/15">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
@@ -240,7 +240,7 @@ function ExpandedRow({
     finally { setPBusy(null); }
   };
 
-  const field = "mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-xs";
+  const field = "mt-0.5 w-full rounded-lg border border-border px-2 py-1 text-xs";
 
   return (
     <div className="space-y-4">
@@ -250,12 +250,12 @@ function ExpandedRow({
       <div className="grid gap-4 md:grid-cols-3">
         {/* Left: add a contact point (labelled, stacked) — 1/3 width. */}
         <div className="md:col-span-1">
-          <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+          <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
             <Icon name="plus-circle-outline" /> Add a contact point
           </h4>
-          <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+          <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
             {c.persons.length > 0 && (
-              <label className="block text-[11px] font-medium text-slate-500">
+              <label className="block text-[11px] font-medium text-muted">
                 Belongs to
                 <select value={owner} onChange={(e) => setOwner(e.target.value)} className={field}>
                   <option value="">Company (generic)</option>
@@ -263,14 +263,14 @@ function ExpandedRow({
                 </select>
               </label>
             )}
-            <label className="block text-[11px] font-medium text-slate-500">
+            <label className="block text-[11px] font-medium text-muted">
               Type
               <select value={type} onChange={(e) => setType(e.target.value as ContactType)} className={field}>
                 <option value="Email">Email</option>
                 <option value="Phone">Phone</option>
               </select>
             </label>
-            <label className="block text-[11px] font-medium text-slate-500">
+            <label className="block text-[11px] font-medium text-muted">
               {type === "Email" ? "Email address" : "Phone number"}
               <input
                 value={value}
@@ -280,7 +280,7 @@ function ExpandedRow({
                 className={field}
               />
             </label>
-            <label className="block text-[11px] font-medium text-slate-500">
+            <label className="block text-[11px] font-medium text-muted">
               Source
               <select value={source} onChange={(e) => setSource(e.target.value as ContactSource)} className={field}>
                 <option value="Website">Website</option>
@@ -289,7 +289,7 @@ function ExpandedRow({
                 <option value="Manual">Manual</option>
               </select>
             </label>
-            <button onClick={submit} className="w-full rounded bg-indigo-600 px-2 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
+            <button onClick={submit} className="w-full rounded-lg bg-brand px-2 py-1.5 text-xs font-medium text-white hover:bg-brand-hover">
               <Icon name="plus" /> Add contact point
             </button>
           </div>
@@ -298,22 +298,22 @@ function ExpandedRow({
         {/* Right: one merged list, grouped by Persons + generic company contact points (2/3 width). */}
         <div className="space-y-3 md:col-span-2">
           <div>
-            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
               <Icon name="account-multiple" /> Persons
             </h4>
-            {c.persons.length === 0 && <p className="text-xs text-slate-400">None</p>}
+            {c.persons.length === 0 && <p className="text-xs text-faint">None</p>}
             <ul className="space-y-2">
               {c.persons.map((p) => (
                 <li key={p.id} className="text-sm">
                   <div className="flex items-start gap-1.5">
-                    <Icon name="linkedin" className="mt-0.5 shrink-0 text-[#0a66c2]" title="LinkedIn contact" />
+                    <Icon name="linkedin" className="mt-0.5 shrink-0 text-linkedin" title="LinkedIn contact" />
                     <div className="min-w-0">
-                      <div className="font-medium text-slate-700">{p.name}</div>
-                      {p.title && <div className="truncate text-xs text-slate-400">{p.title}</div>}
+                      <div className="font-medium text-brand">{p.name}</div>
+                      {p.title && <div className="truncate text-xs text-faint">{p.title}</div>}
                     </div>
                     <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
                       title={c.website ? "Look up this person's email/phone on the company website" : "Find the company website first (step 1)"}
-                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-600 hover:bg-slate-100 disabled:opacity-40">
+                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg border border-border bg-surface px-1.5 py-0.5 text-[11px] text-muted hover:bg-surface-hover disabled:opacity-40">
                       <Icon name="account-search" /> {pBusy === p.id ? "…" : "Find contact"}
                     </button>
                   </div>
@@ -321,23 +321,23 @@ function ExpandedRow({
                     {(p.contacts ?? []).map((ct) => (
                       <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
                     ))}
-                    {(p.contacts ?? []).length === 0 && <li className="text-xs text-slate-300">No contact points yet</li>}
+                    {(p.contacts ?? []).length === 0 && <li className="text-xs text-faint">No contact points yet</li>}
                   </ul>
                 </li>
               ))}
             </ul>
-            {pMsg && <p className="mt-1.5 text-[11px] text-slate-500">{pMsg}</p>}
+            {pMsg && <p className="mt-1.5 text-[11px] text-muted">{pMsg}</p>}
           </div>
 
           <div>
-            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
-              <Icon name="card-account-mail" /> Company contact points <span className="font-normal normal-case text-slate-300">generic</span>
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
+              <Icon name="card-account-mail" /> Company contact points <span className="font-normal normal-case text-faint">generic</span>
             </h4>
             <ul className="space-y-1">
               {c.contacts.map((ct) => (
                 <ContactRow key={ct.id} ct={ct} onSetStatus={onSetContactStatus} onDelete={onDeleteContact} />
               ))}
-              {c.contacts.length === 0 && <li className="text-xs text-slate-400">None</li>}
+              {c.contacts.length === 0 && <li className="text-xs text-faint">None</li>}
             </ul>
           </div>
         </div>
@@ -396,7 +396,7 @@ function EnrichmentSection({
   };
 
   const em = enrichmentMeta(c.enrichmentStatus);
-  const inp = "w-full rounded border border-slate-200 px-2 py-1 text-xs";
+  const inp = "w-full rounded-lg border border-border px-2 py-1 text-xs";
 
   // Save is enabled only when something actually changed (issue: avoid no-op submits).
   const norm = (s?: string | null) => (s ?? "").trim();
@@ -465,68 +465,68 @@ function EnrichmentSection({
   }, [c.updatedAt]);
 
   return (
-    <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
+    <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
       {/* Action feedback sits at the top — i.e. directly below the StepRow action buttons. */}
-      {busy && <p className="text-xs text-slate-400">Working…</p>}
-      {searchMsg && <p className="text-xs text-amber-600">{searchMsg}</p>}
+      {busy && <p className="text-xs text-faint">Working…</p>}
+      {searchMsg && <p className="text-xs text-warning">{searchMsg}</p>}
       {cands && cands.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[11px] text-slate-400">“Use” sets it + enriches; “Discard” drops the suggestion:</p>
+          <p className="text-[11px] text-faint">“Use” sets it + enriches; “Discard” drops the suggestion:</p>
           {cands.map((cand) => (
             <div key={cand.url}
-              className="flex items-center gap-2 rounded border border-slate-200 px-2 py-1 text-xs">
+              className="flex items-center gap-2 rounded-lg border border-border px-2 py-1 text-xs">
               <a href={cand.url} target="_blank" rel="noreferrer" title="Preview in new tab"
-                className="flex items-center gap-1 font-medium text-indigo-600 hover:underline">
-                <Icon name="open-in-new" className="text-slate-400" />
+                className="flex items-center gap-1 font-medium text-brand hover:underline">
+                <Icon name="open-in-new" className="text-faint" />
                 {cand.url.replace(/^https?:\/\//, "")}
               </a>
-              <span className="truncate text-slate-400">{cand.title}</span>
-              {cand.reason && <span className="ml-auto shrink-0 text-[10px] text-emerald-600">{cand.reason}</span>}
+              <span className="truncate text-faint">{cand.title}</span>
+              {cand.reason && <span className="ml-auto shrink-0 text-[10px] text-success">{cand.reason}</span>}
               <button onClick={() => pick(cand.url)}
-                className={`shrink-0 rounded bg-indigo-600 px-2 py-0.5 font-medium text-white hover:bg-indigo-700 ${cand.reason ? "" : "ml-auto"}`}>
+                className={`shrink-0 rounded-lg bg-brand px-2 py-0.5 font-medium text-white hover:bg-brand-hover ${cand.reason ? "" : "ml-auto"}`}>
                 Use
               </button>
               <button onClick={() => setCands((cs) => (cs ? cs.filter((x) => x.url !== cand.url) : cs))}
                 title="Discard this suggestion"
-                className="shrink-0 rounded border border-slate-200 px-2 py-0.5 text-slate-500 hover:bg-slate-100">
+                className="shrink-0 rounded-lg border border-border px-2 py-0.5 text-muted hover:bg-surface-hover">
                 Discard
               </button>
             </div>
           ))}
         </div>
       )}
-      {msg && <p className="text-xs text-slate-500">{msg}</p>}
+      {msg && <p className="text-xs text-muted">{msg}</p>}
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-        <label className="text-[11px] text-slate-500 sm:col-span-2">Company name
+        <label className="text-[11px] text-muted sm:col-span-2">Company name
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Company AB" className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500 sm:col-span-2">
+        <label className="text-[11px] text-muted sm:col-span-2">
           <span className="flex items-center gap-1">
             Website
             {c.website && (
               <a href={c.website} target="_blank" rel="noreferrer" title="Open saved website"
-                className="text-indigo-500 hover:underline"><Icon name="open-in-new" /> open</a>
+                className="text-brand hover:underline"><Icon name="open-in-new" /> open</a>
             )}
           </span>
           <input value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://…" className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Org.nr
+        <label className="text-[11px] text-muted">Org.nr
           <input value={orgNumber} onChange={(e) => setOrgNumber(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Län
+        <label className="text-[11px] text-muted">Län
           <input value={lan} onChange={(e) => setLan(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Kommun
+        <label className="text-[11px] text-muted">Kommun
           <input value={kommun} onChange={(e) => setKommun(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500">Employees
+        <label className="text-[11px] text-muted">Employees
           <input value={employeeCount} onChange={(e) => setEmployeeCount(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500 sm:col-span-2">Revenue band
+        <label className="text-[11px] text-muted sm:col-span-2">Revenue band
           <input value={revenueBand} onChange={(e) => setRevenueBand(e.target.value)} className={inp} />
         </label>
-        <label className="text-[11px] text-slate-500 sm:col-span-2">Financial note
+        <label className="text-[11px] text-muted sm:col-span-2">Financial note
           <input value={financialNote} onChange={(e) => setFinancialNote(e.target.value)} className={inp} />
         </label>
       </div>
@@ -534,13 +534,13 @@ function EnrichmentSection({
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={save} disabled={!dirty}
           title={dirty ? "Save your edits" : "No changes to save"}
-          className="rounded bg-indigo-600 px-2.5 py-1 text-xs font-medium text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-indigo-600">
+          className="rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand">
           <Icon name="content-save" /> Save fields
         </button>
         <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
           <Icon name={em.icon} /> {em.label}
         </span>
-        <span className="ml-auto text-[11px] text-slate-400">
+        <span className="ml-auto text-[11px] text-faint">
           {dirty ? "Unsaved changes." : "allabolag auto-fills via the extension."}
         </span>
       </div>
@@ -550,11 +550,11 @@ function EnrichmentSection({
 
 // Per-contact reach-out status options + colors.
 const OUTREACH: { value: OutreachStatus; label: string; cls: string }[] = [
-  { value: "NotContacted", label: "Not contacted", cls: "text-slate-500 ring-slate-200 bg-white" },
-  { value: "Contacted", label: "Contacted", cls: "text-blue-700 ring-blue-200 bg-blue-50" },
-  { value: "Replied", label: "Replied", cls: "text-emerald-700 ring-emerald-200 bg-emerald-50" },
-  { value: "Bounced", label: "Bounced", cls: "text-rose-700 ring-rose-200 bg-rose-50" },
-  { value: "Closed", label: "Closed", cls: "text-slate-400 ring-slate-200 bg-white" },
+  { value: "NotContacted", label: "Not contacted", cls: "text-muted ring-border bg-surface" },
+  { value: "Contacted", label: "Contacted", cls: "text-brand ring-accent-strong bg-accent/30" },
+  { value: "Replied", label: "Replied", cls: "text-success ring-success/30 bg-success/10" },
+  { value: "Bounced", label: "Bounced", cls: "text-danger ring-danger/30 bg-danger/10" },
+  { value: "Closed", label: "Closed", cls: "text-faint ring-border bg-surface" },
 ];
 const outreachCls = (s?: OutreachStatus) => OUTREACH.find((o) => o.value === s)?.cls ?? OUTREACH[0].cls;
 
@@ -570,32 +570,32 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
   const icon = ct.type === "Email" ? "email" : ct.type === "Phone" ? "phone" : "linkedin";
   return (
     <li className="flex items-center gap-2 text-sm">
-      <Icon name={icon} className={isLinkedIn ? "shrink-0 text-[#0a66c2]" : guessed ? "shrink-0 text-amber-500" : "shrink-0 text-slate-400"} />
+      <Icon name={icon} className={isLinkedIn ? "shrink-0 text-linkedin" : guessed ? "shrink-0 text-warning" : "shrink-0 text-faint"} />
       {isLinkedIn ? (
         <a href={ct.value} target="_blank" rel="noreferrer" title={ct.value}
-          className="break-all text-indigo-600 hover:underline">
+          className="break-all text-brand hover:underline">
           {ct.value.replace(/^https?:\/\/(www\.)?linkedin\.com\//, "").replace(/\/$/, "") || ct.value}
         </a>
       ) : (
-        <span data-noexpand className={`cursor-text break-all ${guessed ? "text-amber-700" : "text-slate-700"}`}>{ct.value}</span>
+        <span data-noexpand className={`cursor-text break-all ${guessed ? "text-warning" : "text-brand"}`}>{ct.value}</span>
       )}
       {guessed ? (
-        <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700"
+        <span className="shrink-0 rounded-lg bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning"
           title="Generic pattern — unverified. Call to confirm; not counted toward the ≥15 list.">guessed</span>
       ) : isLinkedIn ? null : ct.sourceUrl ? (
         <a href={ct.sourceUrl} target="_blank" rel="noreferrer"
-          className="shrink-0 text-xs text-indigo-500 hover:underline" title={`Extracted from ${ct.sourceUrl}`}>
+          className="shrink-0 text-xs text-brand hover:underline" title={`Extracted from ${ct.sourceUrl}`}>
           ({ct.source} <Icon name="open-in-new" className="text-[10px]" />)
         </a>
       ) : (
-        <span className="shrink-0 text-xs text-slate-400">({ct.source})</span>
+        <span className="shrink-0 text-xs text-faint">({ct.source})</span>
       )}
       <select value={ct.outreachStatus ?? "NotContacted"} title="Reach-out status"
         onChange={(e) => ct.id && onSetStatus(ct.id, e.target.value as OutreachStatus)}
         className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ${outreachCls(ct.outreachStatus)}`}>
         {OUTREACH.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <button onClick={() => ct.id && onDelete(ct.id)} className="shrink-0 text-slate-300 hover:text-rose-500" title="Delete">
+      <button onClick={() => ct.id && onDelete(ct.id)} className="shrink-0 text-faint hover:text-danger" title="Delete">
         <Icon name="close" />
       </button>
     </li>
@@ -610,28 +610,28 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
   const pill = (done: boolean, active: string) =>
-    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-white text-slate-500 hover:bg-slate-200" : `border ${active}`}`;
+    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-surface-hover text-muted hover:bg-border" : `border ${active}`}`;
   const mark = (n: number, done: boolean, dot: string) =>
-    done ? <Icon name="refresh" className="text-slate-400" />
+    done ? <Icon name="refresh" className="text-faint" />
       : <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold text-white ${dot}`}>{n}</span>;
   return (
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
       <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
         onClick={(e) => { e.stopPropagation(); onStep("website"); }}
-        className={pill(wDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
-        {mark(1, wDone, "bg-emerald-600")} Find Company Website
+        className={pill(wDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
+        {mark(1, wDone, "bg-success")} Find Company Website
       </button>
-      <Icon name="chevron-right" className="text-slate-300" />
+      <Icon name="chevron-right" className="text-faint" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
-        className={pill(kDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
-        {mark(2, kDone, "bg-emerald-600")} Scan Company Contacts
+        className={pill(kDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
+        {mark(2, kDone, "bg-success")} Scan Company Contacts
       </button>
-      <Icon name="chevron-right" className="text-slate-300" />
+      <Icon name="chevron-right" className="text-faint" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className={pill(oDone, "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100")}>
-        {mark(3, oDone, "bg-emerald-600")} Scan Allabolag
+        className={pill(oDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
+        {mark(3, oDone, "bg-success")} Scan Allabolag
       </a>
     </div>
   );

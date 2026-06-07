@@ -7,30 +7,30 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
   const done = stats.readyForList >= stats.target;
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-baseline gap-2">
-          <Icon name="format-list-checks" className="text-indigo-500" />
-          <span className="text-2xl font-semibold text-slate-800">
+          <Icon name="format-list-checks" className="text-brand" />
+          <span className="text-2xl font-semibold text-brand">
             {stats.readyForList}
           </span>
-          <span className="text-slate-400">/ {stats.target} hosts ready</span>
-          <span className="text-xs text-slate-400">(mail + phone)</span>
+          <span className="text-muted">/ {stats.target} hosts ready</span>
+          <span className="text-xs text-faint">(mail + phone)</span>
         </div>
-        <div className="flex items-baseline gap-2 text-slate-500">
-          <Icon name="domain" className="text-slate-400" />
-          <span className="font-medium text-slate-700">{stats.total}</span> companies
+        <div className="flex items-baseline gap-2 text-muted">
+          <Icon name="domain" className="text-faint" />
+          <span className="font-medium text-brand">{stats.total}</span> companies
         </div>
         {done && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-sm font-medium text-green-700 ring-1 ring-green-200">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-sm font-medium text-success ring-1 ring-success/30">
             <Icon name="check-circle" /> Target met — generate the Lexicon list
           </span>
         )}
       </div>
 
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-hover">
         <div
-          className={`h-full rounded-full transition-all ${done ? "bg-green-500" : "bg-indigo-500"}`}
+          className={`h-full rounded-full transition-all ${done ? "bg-success" : "bg-brand"}`}
           style={{ width: `${pct}%` }}
         />
       </div>

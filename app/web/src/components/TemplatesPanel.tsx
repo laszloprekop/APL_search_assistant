@@ -33,7 +33,7 @@ export function TemplatesPanel({ onClose }: { onClose: () => void }) {
   }, [sel, tpls]);
 
   const meta = KINDS.find((k) => k.kind === sel)!;
-  const field = "w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm focus:border-indigo-400 focus:outline-none";
+  const field = "w-full rounded-xl border border-border px-3 py-1.5 text-sm focus:border-accent-strong focus:outline-none";
 
   const save = async () => {
     const t = await api.updateTemplate(sel, { subject: meta.hasSubject ? subject : null, body });
@@ -43,44 +43,44 @@ export function TemplatesPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="flex items-center gap-1.5 font-semibold text-slate-700">
-          <Icon name="text-box-edit-outline" className="text-indigo-500" /> Templates
+        <h3 className="flex items-center gap-1.5 font-semibold text-brand">
+          <Icon name="text-box-edit-outline" className="text-brand" /> Templates
         </h3>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-700"><Icon name="close" /></button>
+        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-1.5">
         {KINDS.map((k) => (
           <button key={k.kind} onClick={() => setSel(k.kind)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${sel === k.kind ? "border-indigo-300 bg-indigo-50 text-indigo-700" : "border-slate-200 text-slate-500 hover:bg-slate-50"}`}>
+            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${sel === k.kind ? "border-accent-strong bg-accent/40 text-brand" : "border-border text-muted hover:bg-surface-hover"}`}>
             {k.label}
           </button>
         ))}
       </div>
 
       {meta.hasSubject && (
-        <label className="mb-2 block text-xs text-slate-500">Subject
+        <label className="mb-2 block text-xs text-muted">Subject
           <input value={subject} onChange={(e) => setSubject(e.target.value)} className={field} />
         </label>
       )}
-      <label className="block text-xs text-slate-500">Body
+      <label className="block text-xs text-muted">Body
         <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={14}
           className={field + " resize-y font-mono text-xs leading-relaxed"} />
       </label>
 
       <div className="mt-2 flex flex-wrap items-center gap-1">
-        <span className="text-[11px] text-slate-400">Merge fields:</span>
+        <span className="text-[11px] text-faint">Merge fields:</span>
         {MERGE_FIELDS.map((f) => (
-          <code key={f} className="rounded bg-slate-100 px-1 py-0.5 text-[10px] text-slate-500">{f}</code>
+          <code key={f} className="rounded-lg bg-surface-hover px-1 py-0.5 text-[10px] text-muted">{f}</code>
         ))}
       </div>
 
       <div className="mt-3 flex items-center justify-end gap-2">
-        {msg && <span className="text-xs text-emerald-600">{msg}</span>}
-        <button onClick={onClose} className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100">Close</button>
-        <button onClick={save} className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
+        {msg && <span className="text-xs text-success">{msg}</span>}
+        <button onClick={onClose} className="rounded-xl px-3 py-1.5 text-sm text-muted hover:bg-surface-hover">Close</button>
+        <button onClick={save} className="rounded-xl bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover">
           <Icon name="content-save" /> Save template
         </button>
       </div>

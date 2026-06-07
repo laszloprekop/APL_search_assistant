@@ -125,28 +125,13 @@
     const sh = host.attachShadow({ mode: "open" });
     sh.innerHTML = `
       <style>
-        * { box-sizing:border-box; font-family:-apple-system,system-ui,sans-serif; }
-        .p { width:320px; background:#fff; color:#1d2226; border:1px solid #d0d5dd; border-radius:10px;
-          box-shadow:0 8px 28px rgba(0,0,0,.22); overflow:hidden; }
-        .h { display:flex; align-items:center; gap:8px; padding:10px 12px; background:#0f766e; color:#fff; }
-        .h b { font-size:13px; } .min { margin-left:auto; cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; }
-        .b { padding:10px 12px; }
-        .grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-        button { font-size:12px; padding:7px 8px; border:1px solid #d0d5dd; border-radius:6px; background:#f3f6f8; cursor:pointer; }
-        button:hover { background:#e9eef2; }
-        button.cap { background:#0f766e; color:#fff; border-color:#0f766e; font-weight:600; }
-        button.send { background:#057642; color:#fff; border-color:#057642; font-weight:600; }
-        .out { margin-top:8px; border-top:1px solid #eef1f3; padding-top:6px; }
-        .f { display:flex; gap:8px; font-size:12px; padding:3px 0; } .k { color:#5e6b74; width:74px; flex:none; }
-        .v { color:#1d2226; word-break:break-word; } .v.miss { color:#b54708; }
-        .sendto { display:flex; gap:8px; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid #eef1f3; }
-        .sendto select { flex:1; font-size:12px; padding:5px; border:1px solid #d0d5dd; border-radius:6px; }
-        .pin { font-size:10px; color:#0f766e; margin-top:4px; }
-        .hint { font-size:12px; color:#8a939b; padding:4px 0; }
-        .status { margin-top:8px; font-size:11px; min-height:14px; color:#5e6b74; line-height:1.35; }
-        .status[data-kind=ok]{color:#057642;} .status[data-kind=err]{color:#b42318;} .status[data-kind=warn]{color:#b54708;}
-        .note { font-size:10px; color:#9aa3ab; margin-top:7px; line-height:1.35; }
-        .collapsed .b { display:none; }
+        ${globalThis.APL_THEME.base}
+        .p { width:320px; }
+        .k { width:74px; }
+        .sendto { display:flex; gap:8px; align-items:center; margin-top:6px; padding-top:6px; border-top:1px solid var(--apl-border); }
+        .sendto select { flex:1; font-size:12px; padding:5px; border:1px solid var(--apl-border); border-radius:var(--apl-radius-btn); color:var(--apl-fg); background:var(--apl-bg); }
+        .pin { font-size:10px; color:var(--apl-muted); margin-top:4px; }
+        .hint { padding:4px 0; }
       </style>
       <div class="p" id="p">
         <div class="h"><b>APL · allabolag</b><button class="min" id="min" title="Minimize">▾</button></div>

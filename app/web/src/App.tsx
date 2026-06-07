@@ -10,6 +10,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { OutboxPanel } from "./components/OutboxPanel";
 import { TemplatesPanel } from "./components/TemplatesPanel";
 import { LexiconPanel } from "./components/LexiconPanel";
+import { UserGuide } from "./components/UserGuide";
 
 function App() {
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -18,6 +19,7 @@ function App() {
   const [stageFilter, setStageFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
   const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates" | "lexicon">("none");
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -63,50 +65,55 @@ function App() {
   const enrichPerson = async (personId: string) => { const r = await api.enrichPerson(personId); load(); return r; };
 
   return (
-    <div className="min-h-full bg-slate-50 text-slate-800">
+    <div className="min-h-full bg-page text-brand">
       <div className="mx-auto max-w-6xl px-4 py-6">
         <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="flex items-center gap-2 text-xl font-bold text-slate-800">
-              <Icon name="briefcase-search" className="text-indigo-500" />
+            <h1 className="flex items-center gap-2 text-xl font-bold text-brand">
+              <Icon name="briefcase-search" className="text-brand" />
               APL Search Assistant
             </h1>
-            <p className="text-sm text-slate-400">Company pipeline · M1</p>
+            <p className="text-sm text-muted">Company pipeline · M1</p>
           </div>
           <div className="flex gap-2">
+            <button onClick={() => setGuideOpen(true)}
+              title="User guide — how the app works, step by step"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              <Icon name="book-open-page-variant" className="text-brand" /> Guide
+            </button>
             <button onClick={() => setPanel(panel === "lexicon" ? "none" : "lexicon")}
               title="Generate + submit the ≥15 Lexicon list"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-              <Icon name="format-list-checks" className="text-indigo-500" /> Lexicon list
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              <Icon name="format-list-checks" className="text-brand" /> Lexicon list
             </button>
             <button onClick={() => setPanel(panel === "outbox" ? "none" : "outbox")}
               title="Outbox — outreach activity log"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
               <Icon name="tray-full" /> Outbox
             </button>
             <button onClick={() => setPanel(panel === "templates" ? "none" : "templates")}
               title="Outreach templates"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
               <Icon name="text-box-multiple-outline" />
             </button>
             <button onClick={() => setPanel(panel === "settings" ? "none" : "settings")}
               title="Settings"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
               <Icon name="cog" />
             </button>
             <button onClick={() => setPanel(panel === "import" ? "none" : "import")}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
-              <Icon name="linkedin" className="text-[#0a66c2]" /> Import capture
+              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              <Icon name="linkedin" className="text-linkedin" /> Import capture
             </button>
             <button onClick={() => setPanel(panel === "add" ? "none" : "add")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-hover">
               <Icon name="plus" /> Add company
             </button>
           </div>
         </header>
 
         {error && (
-          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700">
+          <div className="mb-4 rounded-xl border border-danger/30 bg-danger/10 px-4 py-2 text-sm text-danger">
             <Icon name="alert-circle" /> {error}
           </div>
         )}
@@ -121,17 +128,17 @@ function App() {
         {panel === "lexicon" && <div className="mb-4"><LexiconPanel onClose={() => setPanel("none")} /></div>}
 
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
-          <span className="text-slate-400"><Icon name="filter-variant" /> Filter</span>
+          <span className="text-muted"><Icon name="filter-variant" /> Filter</span>
           <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
-            className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-sm">
+            className="rounded-xl border border-border bg-surface px-2 py-1 text-sm">
             <option value="">All stages</option>
             {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
-          <label className="inline-flex cursor-pointer items-center gap-1.5 text-slate-600">
-            <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} className="accent-indigo-600" />
+          <label className="inline-flex cursor-pointer items-center gap-1.5 text-muted">
+            <input type="checkbox" checked={readyOnly} onChange={(e) => setReadyOnly(e.target.checked)} className="accent-brand" />
             Ready only (mail + phone)
           </label>
-          <span className="ml-auto text-slate-400">{companies.length} shown</span>
+          <span className="ml-auto text-muted">{companies.length} shown</span>
         </div>
 
         <CompanyTable
@@ -149,6 +156,8 @@ function App() {
           onRefresh={load}
         />
       </div>
+
+      {guideOpen && <UserGuide onClose={() => setGuideOpen(false)} />}
     </div>
   );
 }

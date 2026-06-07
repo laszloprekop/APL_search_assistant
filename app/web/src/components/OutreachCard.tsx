@@ -4,9 +4,9 @@ import { api } from "../api";
 import { Icon } from "../lib/ui";
 
 const CHANNELS: { ch: OutreachChannel; label: string; icon: string; cls: string }[] = [
-  { ch: "Email", label: "Email draft", icon: "email-outline", cls: "border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100" },
-  { ch: "Linkedin", label: "LinkedIn message", icon: "linkedin", cls: "border-sky-200 bg-sky-50 text-[#0a66c2] hover:bg-sky-100" },
-  { ch: "Phone", label: "Phone script", icon: "phone-outline", cls: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
+  { ch: "Email", label: "Email draft", icon: "email-outline", cls: "border-border bg-surface text-brand hover:bg-surface-hover" },
+  { ch: "Linkedin", label: "LinkedIn message", icon: "linkedin", cls: "border-linkedin/30 bg-linkedin/5 text-linkedin hover:bg-linkedin/10" },
+  { ch: "Phone", label: "Phone script", icon: "phone-outline", cls: "border-success/30 bg-success/10 text-success hover:bg-success/15" },
 ];
 
 const enc = encodeURIComponent;
@@ -65,22 +65,22 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
   const ch = draft?.channel;
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-3">
+    <div className="rounded-xl border border-border bg-surface p-3">
       <div className="mb-2 flex flex-wrap items-center gap-2">
-        <h4 className="flex items-center gap-1 text-xs font-semibold uppercase text-slate-400">
+        <h4 className="flex items-center gap-1 text-xs font-semibold uppercase text-faint">
           <Icon name="send-outline" /> Outreach
         </h4>
         {company.persons.length > 0 && (
           <select value={target} onChange={(e) => setTarget(e.target.value)}
             title="Who to address (blank = company / generic)"
-            className="rounded border border-slate-200 px-1.5 py-1 text-xs">
+            className="rounded-xl border border-border px-1.5 py-1 text-xs">
             <option value="">Company (generic)</option>
             {company.persons.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         )}
         <select value={kind} onChange={(e) => setKind(e.target.value as OutreachKind)}
           title="Email template: first touch or follow-up"
-          className="rounded border border-slate-200 px-1.5 py-1 text-xs">
+          className="rounded-xl border border-border px-1.5 py-1 text-xs">
           <option value="Cold">Cold (first)</option>
           <option value="Followup">Follow-up</option>
         </select>
@@ -94,88 +94,88 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
           </button>
         ))}
       </div>
-      {err && <p className="mt-2 text-xs text-rose-600">{err}</p>}
-      <p className="mt-2 text-[11px] text-slate-400">
+      {err && <p className="mt-2 text-xs text-danger">{err}</p>}
+      <p className="mt-2 text-[11px] text-faint">
         Drafts merge your details (Settings) + company data. Nothing sends automatically — you send,
         copy, or call, then mark it logged.
       </p>
 
       {draft && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={close}>
-          <div className="max-h-[88vh] w-full max-w-2xl overflow-auto rounded-xl bg-white p-4 shadow-xl"
+          <div className="max-h-[88vh] w-full max-w-2xl overflow-auto rounded-2xl bg-surface p-4 shadow-xl"
             onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between">
-              <h3 className="flex items-center gap-1.5 font-semibold text-slate-700">
+              <h3 className="flex items-center gap-1.5 font-semibold text-brand">
                 <Icon name={CHANNELS.find((c) => c.ch === ch)!.icon} />
                 {ch === "Email" ? "Email draft" : ch === "Linkedin" ? "LinkedIn message" : "Phone script"}
-                <span className="text-sm font-normal text-slate-400">· {company.name}</span>
+                <span className="text-sm font-normal text-faint">· {company.name}</span>
               </h3>
-              <button onClick={close} className="text-slate-400 hover:text-slate-700"><Icon name="close" /></button>
+              <button onClick={close} className="text-faint hover:text-brand"><Icon name="close" /></button>
             </div>
 
             {(hasMarkers(body) || hasMarkers(subject)) && (
-              <p className="mb-2 rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+              <p className="mb-2 rounded-lg bg-warning/10 px-2 py-1 text-[11px] text-warning">
                 <Icon name="alert-circle-outline" /> Some fields are unset (shown as <code>[field?]</code>).
                 Fill them in Settings → Your details, or edit below before sending.
               </p>
             )}
 
             {ch === "Email" && (
-              <label className="block text-[11px] text-slate-500">To
+              <label className="block text-[11px] text-muted">To
                 <input value={to} onChange={(e) => setTo(e.target.value)} placeholder="recipient@…"
-                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-sm" />
+                  className="mt-0.5 w-full rounded-xl border border-border px-2 py-1 text-sm" />
               </label>
             )}
             {ch === "Email" && (
-              <label className="mt-2 block text-[11px] text-slate-500">Subject
+              <label className="mt-2 block text-[11px] text-muted">Subject
                 <input value={subject} onChange={(e) => setSubject(e.target.value)}
-                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-sm" />
+                  className="mt-0.5 w-full rounded-xl border border-border px-2 py-1 text-sm" />
               </label>
             )}
-            <label className="mt-2 block text-[11px] text-slate-500">
+            <label className="mt-2 block text-[11px] text-muted">
               {ch === "Phone" ? "Script (follow during the call)" : "Body"}
               <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={ch === "Phone" ? 14 : 12}
-                className="mt-0.5 w-full whitespace-pre-wrap rounded border border-slate-200 px-2 py-1.5 font-mono text-xs leading-relaxed" />
+                className="mt-0.5 w-full whitespace-pre-wrap rounded-xl border border-border px-2 py-1.5 font-mono text-xs leading-relaxed" />
             </label>
 
             {ch === "Phone" && (
-              <label className="mt-2 block text-[11px] text-slate-500">Call outcome (logged)
+              <label className="mt-2 block text-[11px] text-muted">Call outcome (logged)
                 <input value={outcome} onChange={(e) => setOutcome(e.target.value)}
                   placeholder="e.g. reached växeln, got dev-lead's email + direct number"
-                  className="mt-0.5 w-full rounded border border-slate-200 px-2 py-1 text-sm" />
+                  className="mt-0.5 w-full rounded-xl border border-border px-2 py-1 text-sm" />
               </label>
             )}
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {ch === "Email" && (<>
-                <a href={mailto} className="inline-flex items-center gap-1 rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">
+                <a href={mailto} className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover">
                   <Icon name="email-fast-outline" /> Open in email app
                 </a>
-                <a href={gmail} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
+                <a href={gmail} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-hover">
                   <Icon name="gmail" /> Open in Gmail
                 </a>
               </>)}
               {ch === "Linkedin" && (<>
-                <button onClick={copy} className="inline-flex items-center gap-1 rounded bg-[#0a66c2] px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
+                <button onClick={copy} className="inline-flex items-center gap-1 rounded-xl bg-linkedin px-3 py-1.5 text-xs font-medium text-white hover:opacity-90">
                   <Icon name="content-copy" /> Copy message
                 </button>
-                {to && <a href={to} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100">
+                {to && <a href={to} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-hover">
                   <Icon name="open-in-new" /> Open profile
                 </a>}
-                {copyMsg && <span className="text-xs text-emerald-600">{copyMsg}</span>}
+                {copyMsg && <span className="text-xs text-success">{copyMsg}</span>}
               </>)}
               {ch === "Phone" && to && (
-                <a href={`tel:${to}`} className="inline-flex items-center gap-1 rounded bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700">
+                <a href={`tel:${to}`} className="inline-flex items-center gap-1 rounded-xl bg-success px-3 py-1.5 text-xs font-medium text-white hover:bg-success/90">
                   <Icon name="phone" /> Call {to}
                 </a>
               )}
 
               <button onClick={log} disabled={logged}
-                className="ml-auto inline-flex items-center gap-1 rounded border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">
+                className="ml-auto inline-flex items-center gap-1 rounded-xl border border-success/40 bg-success/10 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/15 disabled:opacity-50">
                 <Icon name={logged ? "check" : "check-circle-outline"} />
                 {logged ? "Logged" : ch === "Phone" ? "Log call" : "Mark as sent"}
               </button>
-              <button onClick={close} className="rounded px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100">Close</button>
+              <button onClick={close} className="rounded-xl px-3 py-1.5 text-xs text-muted hover:bg-surface-hover">Close</button>
             </div>
           </div>
         </div>

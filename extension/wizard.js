@@ -232,34 +232,23 @@
     sh = host.attachShadow({ mode: "open" });
     sh.innerHTML = `
       <style>
-        * { box-sizing:border-box; font-family:-apple-system,system-ui,sans-serif; }
-        .p { width:300px; background:#fff; color:#1d2226; border:1px solid #d0d5dd; border-radius:10px;
-          box-shadow:0 8px 28px rgba(0,0,0,.22); overflow:hidden; }
-        .h { display:flex; align-items:center; gap:8px; padding:9px 12px; background:#4f46e5; color:#fff; }
-        .h b { font-size:13px; } .h .x { margin-left:auto; cursor:pointer; background:transparent; border:0; color:#fff; font-size:14px; }
-        .b { padding:10px 12px; }
-        .bar { position:relative; height:8px; border-radius:5px; background:#eef0f4; overflow:hidden; margin-bottom:8px; }
-        .bar .fill { position:absolute; inset:0 auto 0 0; width:0; background:#4f46e5; transition:width .25s; }
-        .bar .lbl { position:absolute; right:6px; top:-1px; font-size:9px; color:#5e6b74; }
-        .step { font-size:12px; color:#1d2226; min-height:16px; margin-bottom:8px; }
-        .results { margin:8px 0; max-height:148px; overflow:auto; border:1px solid #eef1f3; border-radius:6px; }
+        ${globalThis.APL_THEME.base}
+        .p { width:300px; }
+        .bar { position:relative; height:8px; border-radius:5px; background:var(--apl-surface-2); overflow:hidden; margin-bottom:8px; }
+        .bar .fill { position:absolute; inset:0 auto 0 0; width:0; background:var(--apl-accent-strong); transition:width .25s; }
+        .bar .lbl { position:absolute; right:6px; top:-1px; font-size:9px; color:var(--apl-muted); }
+        .step { font-size:12px; color:var(--apl-fg); min-height:16px; margin-bottom:8px; }
+        .results { margin:8px 0; max-height:148px; overflow:auto; border:1px solid var(--apl-border); border-radius:var(--apl-radius-btn); }
         .results:empty { display:none; }
-        .r { display:flex; align-items:baseline; gap:6px; font-size:11px; padding:4px 7px; border-bottom:1px solid #f3f4f6; }
+        .r { display:flex; align-items:baseline; gap:6px; font-size:11px; padding:4px 7px; border-bottom:1px solid var(--apl-border); }
         .r:last-child { border-bottom:0; }
         .r .ic { flex:none; width:12px; font-size:11px; }
-        .r .nm { font-weight:600; color:#1d2226; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:96px; }
-        .r .web { color:#057642; word-break:break-all; } .r .web.none { color:#b54708; font-style:italic; }
-        .r.ok .ic { color:#057642; } .r.miss .ic { color:#b54708; } .r.cur { background:#eef0ff; }
-        .r.cur .ic { color:#4f46e5; }
+        .r .nm { font-weight:600; color:var(--apl-fg); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:96px; }
+        .r .web { color:var(--apl-success); word-break:break-all; } .r .web.none { color:var(--apl-warning); font-style:italic; }
+        .r.ok .ic { color:var(--apl-success); } .r.miss .ic { color:var(--apl-warning); } .r.cur { background:var(--apl-accent-soft); }
+        .r.cur .ic { color:var(--apl-brand); }
         .act { display:flex; gap:6px; }
-        button { font-size:12px; padding:8px 9px; border:1px solid #d0d5dd; border-radius:6px; background:#f3f6f8; cursor:pointer; }
-        button:hover { background:#e9eef2; } button[disabled] { opacity:.6; cursor:default; }
-        button.primary { flex:1; background:#4f46e5; color:#fff; border-color:#4f46e5; font-weight:600; }
-        button.send { flex:1; background:#057642; color:#fff; border-color:#057642; font-weight:600; }
-        button.ghost { background:#fff; }
-        .status { margin-top:8px; font-size:11px; line-height:1.35; min-height:14px; color:#5e6b74; }
-        .status[data-kind=ok]{color:#057642;} .status[data-kind=err]{color:#b42318;} .status[data-kind=warn]{color:#b54708;}
-        .note { font-size:10px; color:#9aa3ab; margin-top:7px; line-height:1.35; }
+        .act button { flex:1; }
       </style>
       <div class="p">
         <div class="h"><b>APL · Enrich websites</b><button class="x" id="x" title="Cancel">✕</button></div>
