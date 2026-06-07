@@ -129,7 +129,7 @@ const STEPS: Step[] = [
     iconClass: "text-linkedin",
     title: "Bring companies in (browser extension)",
     what: <>The Chrome extension does <strong>assisted, manual capture</strong> — no auto-crawling. It captures people from a LinkedIn search, walks profiles to grab company websites, and reads org.nr / phone / financials from allabolag.se.</>,
-    how: <>Browse a search yourself, capture the visible results, hit <strong>Copy JSON</strong>, then paste it into <Ref icon="swap-vertical" iconClass="text-brand">Import / Export</Ref> here. The same panel imports company / contact <strong>spreadsheets</strong> (paste tab-separated rows) and exports the current view back out for sharing. Imports are deduped, so re-importing is safe.</>,
+    how: <>Browse a search yourself, capture the visible results, hit <strong>Copy JSON</strong>, then paste it into <Ref icon="swap-vertical" iconClass="text-brand">Import / Export</Ref> here. The same panel imports company / contact <strong>spreadsheets</strong> (paste tab-separated rows) and exports the current view back out for sharing. It also does a full <strong>backup &amp; share</strong> of the whole dataset in the app's own format — lossless JSON, or CSV (Excel) / TSV — that you can download and re-import later. Imports are deduped, so re-importing is safe.</>,
     why: <>One click = one navigation, only the page you opened. That keeps the tool inside each site’s terms of service.</>,
   },
   {

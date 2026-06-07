@@ -57,6 +57,11 @@ export const api = {
   importSheet: (rows: SheetImportRow[]) =>
     http<ImportResult>("/companies/import-sheet", { method: "POST", body: JSON.stringify(rows) }),
 
+  // Native backup: the whole dataset (unfiltered) out, the app's own graph back in.
+  exportAll: () => http<Company[]>("/export"),
+  importNative: (companies: unknown[]) =>
+    http<ImportResult>("/companies/import-native", { method: "POST", body: JSON.stringify(companies) }),
+
   enrich: (id: string, website?: string) =>
     http<EnrichResponse>(`/companies/${id}/enrich`, {
       method: "POST",

@@ -46,6 +46,17 @@ public static class ApiEndpoints
             return c is null ? Results.NotFound() : Results.Ok(ToDto(c));
         });
 
+        // Full-dataset export for backup/sharing (PRD §6.1) — every company, unfiltered, as the same
+        // lossless graph the UI uses. The web client serializes this to JSON / CSV / TSV.
+        api.MapGet("/export", async (AppDbContext db) =>
+        {
+            var list = (await db.Companies.Include(c => c.Persons).Include(c => c.Contacts).ToListAsync())
+                .OrderByDescending(c => c.CreatedAt)
+                .Select(ToDto)
+                .ToList();
+            return Results.Ok(list);
+        });
+
         api.MapPost("/companies", async (AppDbContext db, CompanyCreateDto dto) =>
         {
             if (string.IsNullOrWhiteSpace(dto.Name)) return Results.BadRequest("Name is required.");
@@ -340,6 +351,125 @@ public static class ApiEndpoints
                 AddContact(company, person, ContactType.Email, r.Email, ContactSource.Manual);
                 AddContact(company, person, ContactType.Phone, r.Phone, r.PhoneIsSwitchboard ? ContactSource.Switchboard : ContactSource.Manual);
                 AddContact(company, person, ContactType.LinkedIn, r.LinkedInUrl, ContactSource.LinkedIn);
+
+                if (!touched.Contains(company.Id)) touched.Add(company.Id);
+            }
+
+            await db.SaveChangesAsync();
+            return Results.Ok(new ImportResult(companiesCreated, personsAdded, skipped, touched));
+        });
+
+        // Native backup restore (PRD §6.1) — accepts the app's own data graph (from a JSON / CSV /
+        // TSV export). Same merge/upsert as import-sheet, but carries the full graph: company stage/
+        // source/financials on creation, person LinkedIn handle, and per-contact source/confidence/
+        // outreach status. Existing non-empty fields are never overwritten; persons dedupe by name,
+        // contacts by (type, value) — so re-importing a backup is idempotent.
+        api.MapPost("/companies/import-native", async (AppDbContext db, List<BackupCompany> rows) =>
+        {
+            int companiesCreated = 0, personsAdded = 0, skipped = 0;
+            var touched = new List<Guid>();
+            var companies = await db.Companies.Include(c => c.Persons).Include(c => c.Contacts).ToListAsync();
+
+            static string? Host(string? url)
+            {
+                if (string.IsNullOrWhiteSpace(url)) return null;
+                var s = System.Text.RegularExpressions.Regex.Replace(url.Trim().ToLowerInvariant(), @"^https?://", "");
+                if (s.StartsWith("www.")) s = s[4..];
+                var slash = s.IndexOfAny(new[] { '/', '?', '#' });
+                if (slash >= 0) s = s[..slash];
+                return string.IsNullOrWhiteSpace(s) ? null : s.TrimEnd('.');
+            }
+            static string? Clean(string? s) => string.IsNullOrWhiteSpace(s) ? null : s.Trim();
+            static string MergeNote(string? existing, string add) =>
+                string.IsNullOrWhiteSpace(existing) ? add
+                : existing.Contains(add, StringComparison.OrdinalIgnoreCase) ? existing
+                : existing + "\n" + add;
+            static TEnum Parse<TEnum>(string? s, TEnum fallback) where TEnum : struct, Enum =>
+                Enum.TryParse<TEnum>(s, true, out var v) ? v : fallback;
+
+            void AddContact(Company company, Guid? personId, BackupContact bc)
+            {
+                var v = Clean(bc.Value);
+                if (v is null || !Enum.TryParse<ContactType>(bc.Type, true, out var type)) return;
+                if (company.Contacts.Any(x => x.Type == type && string.Equals(x.Value, v, StringComparison.OrdinalIgnoreCase))) return;
+                company.Contacts.Add(new ContactInfo
+                {
+                    CompanyId = company.Id,
+                    PersonId = personId,
+                    Type = type,
+                    Value = v,
+                    Source = Parse(bc.Source, ContactSource.Manual),
+                    Confidence = Enum.TryParse<Confidence>(bc.Confidence, true, out var cf) ? cf : null,
+                    SourceUrl = Clean(bc.SourceUrl),
+                    OutreachStatus = Parse(bc.OutreachStatus, OutreachStatus.NotContacted),
+                    LastContactedAt = bc.LastContactedAt,
+                });
+            }
+
+            foreach (var r in rows)
+            {
+                var name = Clean(r.Name);
+                if (name is null) { skipped++; continue; }
+
+                var host = Host(r.Website);
+                Company? company = host is not null
+                    ? companies.FirstOrDefault(c => Host(c.Website) == host)
+                    : null;
+                company ??= companies.FirstOrDefault(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase));
+
+                if (company is null)
+                {
+                    // New company: seed stage/source/status from the backup (existing rows keep theirs).
+                    company = new Company
+                    {
+                        Name = name,
+                        Source = Parse(r.Source, CompanySource.Manual),
+                        Stage = Parse(r.Stage, CompanyStage.Identified),
+                        EnrichmentStatus = Parse(r.EnrichmentStatus, EnrichmentStatus.Pending),
+                    };
+                    db.Companies.Add(company);
+                    companies.Add(company);
+                    companiesCreated++;
+                }
+
+                // Fill only empty company scalars — never overwrite data already in the app.
+                if (string.IsNullOrWhiteSpace(company.Website)) company.Website = Clean(r.Website) ?? company.Website;
+                if (string.IsNullOrWhiteSpace(company.OrgNumber)) company.OrgNumber = Clean(r.OrgNumber) ?? company.OrgNumber;
+                if (string.IsNullOrWhiteSpace(company.LinkedInUrl)) company.LinkedInUrl = Clean(r.LinkedInUrl) ?? company.LinkedInUrl;
+                if (string.IsNullOrWhiteSpace(company.LocationLan)) company.LocationLan = Clean(r.LocationLan) ?? company.LocationLan;
+                if (string.IsNullOrWhiteSpace(company.LocationKommun)) company.LocationKommun = Clean(r.LocationKommun) ?? company.LocationKommun;
+                if (string.IsNullOrWhiteSpace(company.RevenueBand)) company.RevenueBand = Clean(r.RevenueBand) ?? company.RevenueBand;
+                if (string.IsNullOrWhiteSpace(company.EmployeeCount)) company.EmployeeCount = Clean(r.EmployeeCount) ?? company.EmployeeCount;
+                if (string.IsNullOrWhiteSpace(company.FinancialNote)) company.FinancialNote = Clean(r.FinancialNote) ?? company.FinancialNote;
+                if (string.IsNullOrWhiteSpace(company.TechStackGuess)) company.TechStackGuess = Clean(r.TechStackGuess) ?? company.TechStackGuess;
+                if (Clean(r.Notes) is { } note) company.Notes = MergeNote(company.Notes, note);
+
+                foreach (var bp in r.Persons ?? new())
+                {
+                    var pname = Clean(bp.Name);
+                    if (pname is null) continue;
+                    var person = company.Persons.FirstOrDefault(p => string.Equals(p.Name, pname, StringComparison.OrdinalIgnoreCase));
+                    if (person is null)
+                    {
+                        person = new Person
+                        {
+                            Name = pname, Title = Clean(bp.Title), LinkedInUrl = Clean(bp.LinkedInUrl),
+                            LinkedInHandle = Clean(bp.LinkedInHandle), Notes = Clean(bp.Notes),
+                        };
+                        company.Persons.Add(person);
+                        personsAdded++;
+                    }
+                    else
+                    {
+                        person.Title ??= Clean(bp.Title);
+                        person.LinkedInUrl ??= Clean(bp.LinkedInUrl);
+                        person.LinkedInHandle ??= Clean(bp.LinkedInHandle);
+                        person.Notes ??= Clean(bp.Notes);
+                    }
+                    foreach (var bc in bp.Contacts ?? new()) AddContact(company, person.Id, bc);
+                }
+
+                foreach (var bc in r.Contacts ?? new()) AddContact(company, null, bc);
 
                 if (!touched.Contains(company.Id)) touched.Add(company.Id);
             }

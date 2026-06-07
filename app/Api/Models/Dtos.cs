@@ -61,6 +61,23 @@ public record CompanyImportRow(
 
 public record CompanyUpsertResult(int Created, int Updated, List<Guid> CompanyIds);
 
+/// <summary>Lossless app-data backup rows (PRD §6.1 backup/share). A tolerant import shape: every
+/// field is optional and enums are strings parsed leniently. The JSON export (a List&lt;CompanyDto&gt;)
+/// deserializes straight into this by property name; the CSV/TSV export reconstructs the same shape
+/// client-side. Merge/upsert semantics match /companies/import-sheet — fill-empty, dedupe, never
+/// overwrite non-empty data.</summary>
+public record BackupContact(
+    string? Type, string? Value, string? Source, string? Confidence,
+    string? SourceUrl, string? OutreachStatus, DateTimeOffset? LastContactedAt);
+public record BackupPerson(
+    string? Name, string? Title, string? LinkedInUrl, string? LinkedInHandle, string? Notes,
+    List<BackupContact>? Contacts);
+public record BackupCompany(
+    string? Name, string? Stage, string? EnrichmentStatus, string? Source,
+    string? OrgNumber, string? Website, string? LinkedInUrl, string? LocationLan, string? LocationKommun,
+    string? RevenueBand, string? EmployeeCount, string? FinancialNote, string? TechStackGuess, string? Notes,
+    List<BackupPerson>? Persons, List<BackupContact>? Contacts);
+
 public record StatsDto(int Total, int ReadyForList, int Target, Dictionary<string, int> ByStage);
 
 public record EnrichRequest(string? Website);

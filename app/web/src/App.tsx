@@ -58,6 +58,8 @@ function App() {
   const deleteContact = async (id: string) => { await api.deleteContact(id); load(); };
   const importCapture = async (rows: unknown[]) => { const r = await api.importCapture(rows); load(); return r; };
   const importSheet = async (rows: SheetImportRow[]) => { const r = await api.importSheet(rows); load(); return r; };
+  const exportAll = () => api.exportAll();
+  const importNative = async (rows: unknown[]) => { const r = await api.importNative(rows); load(); return r; };
   const updateFields = async (c: Company, over: Partial<CompanyUpdate>) => { await api.updateCompany(c.id, toUpdate(c, over)); load(); };
   const enrich = async (c: Company, website?: string) => { const r = await api.enrich(c.id, website); load(); return r; };
   const findWebsite = (c: Company) => api.findWebsite(c.id);
@@ -123,7 +125,7 @@ function App() {
         <div className="mb-4"><StatsBar stats={stats} /></div>
 
         {panel === "add" && <div className="mb-4"><AddCompanyForm onCreate={createCompany} onClose={() => setPanel("none")} /></div>}
-        {panel === "import" && <div className="mb-4"><ImportPanel companies={companies} onImportCapture={importCapture} onImportSheet={importSheet} onClose={() => setPanel("none")} /></div>}
+        {panel === "import" && <div className="mb-4"><ImportPanel companies={companies} onImportCapture={importCapture} onImportSheet={importSheet} onExportAll={exportAll} onImportNative={importNative} onClose={() => setPanel("none")} /></div>}
         {panel === "settings" && <div className="mb-4"><SettingsPanel onClose={() => setPanel("none")} onSaved={load} /></div>}
         {panel === "outbox" && <div className="mb-4"><OutboxPanel onClose={() => setPanel("none")} /></div>}
         {panel === "templates" && <div className="mb-4"><TemplatesPanel onClose={() => setPanel("none")} /></div>}

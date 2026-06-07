@@ -6,11 +6,13 @@
 
 import type { Company, ContactType, Person, SheetImportRow } from "../types";
 
-// ---- TSV (Google Sheets clipboard dialect) --------------------------------
-// Tab-delimited, newline-separated; a cell containing a tab, newline, or quote is wrapped in
-// double quotes with embedded quotes doubled (same quoting CSV uses, but with a tab delimiter).
+// ---- delimited text (TSV / CSV) -------------------------------------------
+// One parser/serializer parameterised by delimiter. TSV is the Google Sheets clipboard dialect
+// (tab-delimited); CSV is the comma dialect Excel reads natively. Both use the same quoting: a cell
+// containing the delimiter, a newline, or a quote is wrapped in double quotes, embedded quotes
+// doubled.
 
-export function parseTsv(text: string): string[][] {
+export function parseDelimited(text: string, delim: string): string[][] {
   const s = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   const rows: string[][] = [];
   let row: string[] = [];
@@ -27,7 +29,7 @@ export function parseTsv(text: string): string[][] {
       field += ch; i++; continue;
     }
     if (ch === '"') { inQuotes = true; i++; continue; }
-    if (ch === "\t") { row.push(field); field = ""; i++; continue; }
+    if (ch === delim) { row.push(field); field = ""; i++; continue; }
     if (ch === "\n") { row.push(field); rows.push(row); row = []; field = ""; i++; continue; }
     field += ch; i++;
   }
@@ -36,10 +38,16 @@ export function parseTsv(text: string): string[][] {
   return rows;
 }
 
-export function toTsv(header: string[], rows: string[][]): string {
-  const esc = (v: string) => (/[\t\n"]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
-  return [header, ...rows].map((r) => r.map((v) => esc(v ?? "")).join("\t")).join("\n");
+export function toDelimited(header: string[], rows: string[][], delim: string): string {
+  const special = new RegExp(`[${delim === "\t" ? "\\t" : delim}\\n"]`);
+  const esc = (v: string) => (special.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  return [header, ...rows].map((r) => r.map((v) => esc(v ?? "")).join(delim)).join("\n");
 }
+
+export const parseTsv = (text: string): string[][] => parseDelimited(text, "\t");
+export const toTsv = (header: string[], rows: string[][]): string => toDelimited(header, rows, "\t");
+export const parseCsv = (text: string): string[][] => parseDelimited(text, ",");
+export const toCsv = (header: string[], rows: string[][]): string => toDelimited(header, rows, ",");
 
 // ---- field helpers --------------------------------------------------------
 
@@ -95,7 +103,7 @@ export interface SheetFormat {
 // Turn a parsed grid into column-keyed records: find the header row (first row matching ≥2 of the
 // known column names — this skips any merged instruction rows above it), then read by name. If no
 // header is found we fall back to positional order.
-function records(grid: string[][], columns: string[]): Record<string, string>[] {
+export function records(grid: string[][], columns: string[]): Record<string, string>[] {
   const norm = (s: string) => (s ?? "").trim().toLowerCase();
   const wanted = columns.map(norm);
   let headerIdx = -1;
