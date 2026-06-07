@@ -10,6 +10,7 @@ import { SettingsPanel } from "./components/SettingsPanel";
 import { OutboxPanel } from "./components/OutboxPanel";
 import { TemplatesPanel } from "./components/TemplatesPanel";
 import { LexiconPanel } from "./components/LexiconPanel";
+import { SearchesPanel } from "./components/SearchesPanel";
 import { UserGuide } from "./components/UserGuide";
 
 function App() {
@@ -18,7 +19,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [stageFilter, setStageFilter] = useState<string>("");
   const [readyOnly, setReadyOnly] = useState(false);
-  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates" | "lexicon">("none");
+  const [panel, setPanel] = useState<"none" | "add" | "import" | "settings" | "outbox" | "templates" | "lexicon" | "searches">("none");
   const [guideOpen, setGuideOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -84,6 +85,11 @@ function App() {
               className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="book-open-page-variant" className="text-brand" /> Guide
             </button>
+            <button onClick={() => setPanel(panel === "searches" ? "none" : "searches")}
+              title="Saved LinkedIn Boolean searches — click to open one"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
+              <Icon name="linkedin" className="text-linkedin" /> Boolean Search
+            </button>
             <button onClick={() => setPanel(panel === "lexicon" ? "none" : "lexicon")}
               title="Generate + submit the ≥15 Lexicon list"
               className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
@@ -130,6 +136,7 @@ function App() {
         {panel === "outbox" && <div className="mb-4"><OutboxPanel onClose={() => setPanel("none")} /></div>}
         {panel === "templates" && <div className="mb-4"><TemplatesPanel onClose={() => setPanel("none")} /></div>}
         {panel === "lexicon" && <div className="mb-4"><LexiconPanel onClose={() => setPanel("none")} /></div>}
+        {panel === "searches" && <div className="mb-4"><SearchesPanel onClose={() => setPanel("none")} /></div>}
 
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-muted"><Icon name="filter-variant" /> Filter</span>

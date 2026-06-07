@@ -254,3 +254,13 @@ export interface FindWebsiteResponse {
 export interface FindLinkedinResponse {
   linkedInUrl: string | null;
 }
+
+// A saved LinkedIn people-search: label + the Boolean query, plus the rest of the search-URL
+// parameters (location/geoUrn, origin, network, …) kept as a query-string fragment.
+// Click → open linkedin.com/search/results/people/?keywords=<query>&<filters>.
+export interface SavedSearch {
+  id: string;
+  label: string;
+  query: string;
+  filters?: string | null;
+}

@@ -679,6 +679,26 @@ public static class ApiEndpoints
             return Results.NoContent();
         });
 
+        // ---- saved LinkedIn Boolean searches (one JSON blob in the Setting store) ----
+        api.MapGet("/searches", async (AppDbContext db) =>
+        {
+            var e = await db.Settings.FindAsync("searches.list");
+            var list = string.IsNullOrWhiteSpace(e?.Value)
+                ? new List<SavedSearchDto>()
+                : System.Text.Json.JsonSerializer.Deserialize<List<SavedSearchDto>>(e!.Value) ?? new();
+            return Results.Ok(list);
+        });
+
+        api.MapPut("/searches", async (AppDbContext db, List<SavedSearchDto> searches) =>
+        {
+            var json = System.Text.Json.JsonSerializer.Serialize(searches);
+            var e = await db.Settings.FindAsync("searches.list");
+            if (e is null) db.Settings.Add(new Setting { Key = "searches.list", Value = json });
+            else e.Value = json;
+            await db.SaveChangesAsync();
+            return Results.Ok(searches);
+        });
+
         api.MapGet("/search/status", async (SearchService search) =>
         {
             var (provider, configured) = await search.StatusAsync();

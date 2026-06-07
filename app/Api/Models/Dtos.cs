@@ -97,6 +97,12 @@ public record SettingsDto(
     bool ProviderFromEnv, bool ApiKeyFromEnv, bool CseIdFromEnv);
 public record SettingsUpdateDto(string? SearchProvider, string? SearchApiKey, string? SearchGoogleCseId);
 
+// A saved LinkedIn people-search: a label, the Boolean query, and the rest of the search-URL
+// parameters (location/geoUrn, origin, network, …) kept verbatim as a query-string fragment.
+// Clicking it opens linkedin.com/search/results/people/?keywords=<query>&<filters>. The whole
+// list is stored as one JSON blob in the Setting key/value store (key "searches.list").
+public record SavedSearchDto(string Id, string Label, string Query, string? Filters);
+
 // ---- M4: templates + 3-channel outreach (no auto-send) ----
 public record TemplateDto(TemplateKind Kind, string? Subject, string Body, DateTimeOffset UpdatedAt);
 public record TemplateUpdateDto(string? Subject, string? Body);

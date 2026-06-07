@@ -1,8 +1,8 @@
 import type {
   Company, CompanyCreate, CompanyUpdate, Contact, EnrichResponse, FindLinkedinResponse,
   FindWebsiteResponse, ImportResult, LexiconPreview, LexiconSubmission, Outreach, OutreachDraft,
-  OutreachDraftRequest, OutreachLogRequest, OutreachSettings, OutreachStatus, SearchStatus, Settings,
-  SettingsUpdate, SheetImportRow, Stats, Template, TemplateKind,
+  OutreachDraftRequest, OutreachLogRequest, OutreachSettings, OutreachStatus, SavedSearch, SearchStatus,
+  Settings, SettingsUpdate, SheetImportRow, Stats, Template, TemplateKind,
 } from "./types";
 
 const BASE = "/api";
@@ -73,6 +73,10 @@ export const api = {
 
   findLinkedin: (id: string) =>
     http<FindLinkedinResponse>(`/companies/${id}/find-linkedin`, { method: "POST" }),
+
+  searches: () => http<SavedSearch[]>("/searches"),
+  putSearches: (list: SavedSearch[]) =>
+    http<SavedSearch[]>("/searches", { method: "PUT", body: JSON.stringify(list) }),
 
   getSettings: () => http<Settings>("/settings"),
   putSettings: (dto: SettingsUpdate) =>
