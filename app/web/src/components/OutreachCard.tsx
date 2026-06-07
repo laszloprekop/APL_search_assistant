@@ -4,9 +4,9 @@ import { api } from "../api";
 import { Icon } from "../lib/ui";
 
 const CHANNELS: { ch: OutreachChannel; label: string; icon: string; cls: string }[] = [
-  { ch: "Email", label: "Email draft", icon: "email-outline", cls: "border-border bg-surface text-brand hover:bg-surface-hover" },
-  { ch: "Linkedin", label: "LinkedIn message", icon: "linkedin", cls: "border-linkedin/30 bg-linkedin/5 text-linkedin hover:bg-linkedin/10" },
-  { ch: "Phone", label: "Phone script", icon: "phone-outline", cls: "border-success/30 bg-success/10 text-success hover:bg-success/15" },
+  { ch: "Email", label: "Email draft", icon: "email-outline", cls: "border-brand bg-surface text-brand hover:bg-brand hover:text-white" },
+  { ch: "Linkedin", label: "LinkedIn message", icon: "linkedin", cls: "border-linkedin bg-linkedin/10 text-linkedin hover:bg-linkedin hover:text-white" },
+  { ch: "Phone", label: "Phone script", icon: "phone-outline", cls: "border-success bg-success/10 text-success hover:bg-success hover:text-white" },
 ];
 
 const enc = encodeURIComponent;

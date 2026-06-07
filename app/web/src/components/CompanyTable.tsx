@@ -87,7 +87,7 @@ export function CompanyTable({
                     if (window.getSelection()?.toString()) return;
                     toggle(c.id);
                   }}
-                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
+                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/25" : "hover:bg-surface-hover"}`}
                 >
                   <td className="px-3 py-2 align-top">
                     <button onClick={() => toggle(c.id)} className="text-faint hover:text-brand">
@@ -174,7 +174,7 @@ export function CompanyTable({
                     company row above (no divider) and sharing its open/hover background. */}
                 <tr
                   onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
-                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
+                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/25" : "hover:bg-surface-hover"}`}
                 >
                   <td></td>
                   <td colSpan={7} className="px-3 pb-2 pt-0">
@@ -182,7 +182,7 @@ export function CompanyTable({
                   </td>
                 </tr>
                 {open.has(c.id) && (
-                  <tr className="bg-accent/15">
+                  <tr className="bg-accent/25">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
@@ -550,11 +550,11 @@ function EnrichmentSection({
 
 // Per-contact reach-out status options + colors.
 const OUTREACH: { value: OutreachStatus; label: string; cls: string }[] = [
-  { value: "NotContacted", label: "Not contacted", cls: "text-muted ring-border bg-surface" },
-  { value: "Contacted", label: "Contacted", cls: "text-brand ring-accent-strong bg-accent/30" },
-  { value: "Replied", label: "Replied", cls: "text-success ring-success/30 bg-success/10" },
-  { value: "Bounced", label: "Bounced", cls: "text-danger ring-danger/30 bg-danger/10" },
-  { value: "Closed", label: "Closed", cls: "text-faint ring-border bg-surface" },
+  { value: "NotContacted", label: "Not contacted", cls: "text-muted ring-border bg-surface-hover" },
+  { value: "Contacted", label: "Contacted", cls: "text-white ring-warning bg-warning" },
+  { value: "Replied", label: "Replied", cls: "text-white ring-success bg-success" },
+  { value: "Bounced", label: "Bounced", cls: "text-white ring-danger bg-danger" },
+  { value: "Closed", label: "Closed", cls: "text-faint ring-border bg-surface-hover" },
 ];
 const outreachCls = (s?: OutreachStatus) => OUTREACH.find((o) => o.value === s)?.cls ?? OUTREACH[0].cls;
 
@@ -580,7 +580,7 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
         <span data-noexpand className={`cursor-text break-all ${guessed ? "text-warning" : "text-brand"}`}>{ct.value}</span>
       )}
       {guessed ? (
-        <span className="shrink-0 rounded-lg bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning"
+        <span className="shrink-0 rounded-lg bg-warning px-1.5 py-0.5 text-[10px] font-medium text-white"
           title="Generic pattern — unverified. Call to confirm; not counted toward the ≥15 list.">guessed</span>
       ) : isLinkedIn ? null : ct.sourceUrl ? (
         <a href={ct.sourceUrl} target="_blank" rel="noreferrer"

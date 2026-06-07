@@ -6,13 +6,13 @@ export function Icon({ name, className, title }: { name: string; className?: str
 }
 
 export const STAGES: { value: CompanyStage; label: string; badge: string }[] = [
-  { value: "Identified", label: "Identified", badge: "bg-faint/15 text-muted ring-border" },
-  { value: "Enriched", label: "Enriched", badge: "bg-brand/10 text-brand ring-brand/20" },
-  { value: "Ready", label: "Ready", badge: "bg-accent/40 text-brand ring-accent-strong" },
-  { value: "Contacted", label: "Contacted", badge: "bg-warning/10 text-warning ring-warning/30" },
-  { value: "Replied", label: "Replied", badge: "bg-success/10 text-success ring-success/30" },
-  { value: "ClosedPositive", label: "Closed ✓", badge: "bg-success/20 text-success ring-success/40" },
-  { value: "ClosedNegative", label: "Closed ✗", badge: "bg-danger/10 text-danger ring-danger/30" },
+  { value: "Identified", label: "Identified", badge: "bg-surface-hover text-muted ring-border" },
+  { value: "Enriched", label: "Enriched", badge: "bg-brand text-white ring-brand" },
+  { value: "Ready", label: "Ready", badge: "bg-accent text-brand ring-accent-strong" },
+  { value: "Contacted", label: "Contacted", badge: "bg-warning text-white ring-warning" },
+  { value: "Replied", label: "Replied", badge: "bg-success text-white ring-success" },
+  { value: "ClosedPositive", label: "Closed ✓", badge: "bg-success text-white ring-success" },
+  { value: "ClosedNegative", label: "Closed ✗", badge: "bg-danger text-white ring-danger" },
 ];
 export const stageMeta = (s: CompanyStage) => STAGES.find((x) => x.value === s) ?? STAGES[0];
 

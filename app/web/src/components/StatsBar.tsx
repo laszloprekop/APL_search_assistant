@@ -22,7 +22,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
           <span className="font-medium text-brand">{stats.total}</span> companies
         </div>
         {done && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-sm font-medium text-success ring-1 ring-success/30">
+          <span className="inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-0.5 text-sm font-medium text-white ring-1 ring-success">
             <Icon name="check-circle" /> Target met — generate the Lexicon list
           </span>
         )}

@@ -54,7 +54,7 @@ export function TemplatesPanel({ onClose }: { onClose: () => void }) {
       <div className="mb-3 flex flex-wrap gap-1.5">
         {KINDS.map((k) => (
           <button key={k.kind} onClick={() => setSel(k.kind)}
-            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${sel === k.kind ? "border-accent-strong bg-accent/40 text-brand" : "border-border text-muted hover:bg-surface-hover"}`}>
+            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${sel === k.kind ? "border-accent-strong bg-accent text-brand" : "border-border text-muted hover:bg-surface-hover"}`}>
             {k.label}
           </button>
         ))}

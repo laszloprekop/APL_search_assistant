@@ -56,7 +56,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="format-list-checks" className="text-brand" /> Lexicon list
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${enough ? "bg-success/15 text-success" : "bg-warning/15 text-warning"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${enough ? "bg-success text-white" : "bg-warning text-white"}`}>
             {p.count} / {p.target} ready
           </span>
         </h3>

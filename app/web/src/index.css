@@ -24,7 +24,7 @@
   --color-muted: #707070;          /* secondary text */
   --color-faint: #9d9d9d;          /* placeholder / disabled / tertiary */
 
-  --color-success: #16a34a;        /* green: ready / replied / enriched-ok */
+  --color-success: #15803d;        /* green: ready / replied / enriched-ok (solid-fill safe w/ white) */
   --color-warning: #c2620a;        /* amber-orange (off the gold): guessed, unset, contacted */
   --color-danger: #dc2626;         /* red: delete, bounced, closed-✗ */
   --color-linkedin: #0a66c2;       /* external brand, LinkedIn affordances only */
