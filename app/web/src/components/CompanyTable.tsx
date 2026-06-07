@@ -616,32 +616,47 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
   const wDone = !!c.website;
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
-  const pill = (done: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+
+  // Interlocked arrow/chevron sequence (clip-path). Every step points right; the first has a flat
+  // left edge, the rest are notched to nest against the previous arrow's tip. Same two-state
+  // colors as before: gold = a runnable "next action", quiet white = done (re-run).
+  const TIP = 14; // px arrow depth
+  const arrow = (first: boolean) =>
+    `polygon(0 0, calc(100% - ${TIP}px) 0, 100% 50%, calc(100% - ${TIP}px) 100%, 0 100%${first ? "" : `, ${TIP}px 50%`})`;
+  const cls = (done: boolean) =>
+    `inline-flex items-center gap-1.5 py-1.5 text-xs font-semibold transition-colors ${
       done ? "bg-surface text-muted hover:bg-surface-hover"
         : "bg-accent text-brand hover:bg-accent-strong"}`;
+  const sty = (first: boolean) => ({
+    clipPath: arrow(first),
+    paddingLeft: first ? 12 : 12 + TIP,
+    paddingRight: 12 + TIP,
+  });
   const mark = (n: number, done: boolean) =>
     done ? <Icon name="refresh" className="opacity-50" />
       : <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-[9px] font-bold text-white">{n}</span>;
+
   return (
-    <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
+    <div data-noexpand className="mt-1.5 flex flex-wrap items-stretch gap-1">
       <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
         onClick={(e) => { e.stopPropagation(); onStep("website"); }}
-        className={pill(wDone)}>
+        className={cls(wDone)} style={sty(true)}>
         {mark(1, wDone)} Find Company Website
       </button>
-      <Icon name="chevron-right" className="opacity-40" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
-        className={pill(kDone)}>
+        className={cls(kDone)} style={sty(false)}>
         {mark(2, kDone)} Scan Company Contacts
       </button>
-      <Icon name="chevron-right" className="opacity-40" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className={pill(oDone)}>
+        className={cls(oDone)} style={sty(false)}>
         {mark(3, oDone)} Scan Allabolag
       </a>
+      {/* Decorative tail — no label, no interaction. Carries the arrow band to the column edge;
+          notched left to nest against step 3, but a flat right edge to close off the row. */}
+      <div aria-hidden className="min-w-6 flex-1 bg-accent/20"
+        style={{ clipPath: `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${TIP}px 50%)` }} />
     </div>
   );
 }
