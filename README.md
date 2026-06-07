@@ -59,13 +59,122 @@ Marking one sent/logged **advances the company stage** and is recorded in an **O
 Lexicon template), then a guided flow — *download CSV → open the email + attach it → mark
 submitted* — and snapshots exactly what was sent for your records.
 
-## How it flows
+## Use cases — pick your level of automation
 
-```
-LinkedIn search ──(extension)──▶ capture people ──▶ wizard grabs websites ──▶ send to app
-allabolag ───────(extension)──▶ org.nr / phone / financials ─────────────────▶ app
-app ──▶ enrich (website crawl + search) ──▶ contacts ──▶ outreach (email/LinkedIn/phone)
-    └──▶ when ≥15 are ready ──▶ generate + submit the Lexicon list
+The app and extension are deliberately **modular**: you can run it as a bare
+spreadsheet-replacement and turn on the heavier, more automated parts only when you want them.
+Each rung below removes a specific manual grind; you can stop at any rung.
+
+### 1 · Effort & success tracker (zero automation)
+
+> **The grind:** keeping a scattered spreadsheet of who you contacted, when, and whether they
+> replied — and eyeballing whether you've hit the ≥15-host bar.
+
+Use the app purely as a pipeline board. **Add companies by hand** or **import** a batch, attach
+email/phone/LinkedIn contact points, and move each one through
+`Identified → Enriched → Ready → Contacted → Replied → Closed` yourself. Every contact point
+carries its own status (`Not contacted → Contacted → Replied → Bounced → Closed`), and the **“≥15
+ready” counter** does the bookkeeping — it only counts companies with *both* a real email and
+phone. *No crawling, no extension, no API keys.*
+
+### 2 · + Templated outreach
+
+> **The grind:** rewriting the same cold email / inMail / phone script for every company and
+> hand-substituting names, dates, and your own details each time.
+
+Turn on the **five editable templates** (cold email, LinkedIn inMail, phone script, follow-up,
+Lexicon cover). `{{merge_field}}` tokens are filled from **Your details** + the company, so each
+draft comes out personalized. Nothing is auto-sent: **Email** opens a prefilled compose window
+(`mailto:` / *Open in Gmail*), **LinkedIn** copies the inMail to paste, **Phone** shows the
+merge-filled script + a `tel:` link. Marking one sent **advances the stage** and logs it to the
+**Outbox**.
+
+### 3 · + Enrich manual contacts from allabolag.se
+
+> **The grind:** opening each company on allabolag and copying org.nr, switchboard phone, kommun,
+> and revenue across by hand — and matching *Euroclear* to *Euroclear Sweden AB*.
+
+With the **extension** on an `allabolag.se` page, one click reads org.nr, switchboard phone,
+kommun, and financials and applies them to the **right** app company — pinned by a link from the
+app, so name mismatches still land correctly. Read-only, one click = one page.
+
+### 4 · + Enrich a company from its own website
+
+> **The grind:** clicking through `/kontakt`, `/om-oss`, `/team` pages hunting for real
+> addresses and phone numbers and figuring out *whose* they are.
+
+The app does a **cautious, polite public-website fetch** (homepage + likely contact/team pages),
+extracts emails/phones, and **attributes them to people by name**. A **per-person search
+fallback** fills an individual gap the crawl missed; MX-gated generic guesses (`info@`,
+`kontakt@`) are clearly flagged and **excluded from the ≥15 list**. Every failure degrades
+gracefully to manual entry.
+
+### 5 · + Source contacts from LinkedIn (two steps)
+
+> **The grind:** scrolling Boolean people-searches, copying names off the page, then chasing
+> down each person's employer website one profile at a time.
+
+Two separate, user-initiated extension steps:
+
+1. **Capture people** — browse a Boolean people-search yourself and append the visible results to
+   a list. It **dedupes** and **accumulates across pages**.
+2. **Grab company websites** — the **guided wizard** walks each captured person's profile →
+   company About page → lifts the company website URL onto their row, then sends the enriched list
+   to the app.
+
+Kept as two steps on purpose: capture is fast and broad; the website pass is the slow part, so you
+run it only on the people you keep. Manual trigger only — no auto-pagination, no background fetch.
+
+### 6 · Export / share the ready list
+
+> **The grind:** assembling the required ≥15-host contact list into something clean enough to
+> hand in or share with a coach.
+
+When ≥15 companies are **Ready**, the **Lexicon list generator** produces a **clean CSV**
+(`lexicon_list.csv`) plus a cover email from the Lexicon template, then a guided *download CSV →
+open the email + attach → mark submitted* flow that **snapshots exactly what was sent**. The same
+CSV is a tidy, shareable export of your ready-to-reach-out companies and people.
+
+## How it flows — inputs to outputs
+
+```mermaid
+flowchart LR
+  subgraph IN["Inputs"]
+    LI["LinkedIn<br/>people search"]
+    AB["allabolag.se<br/>page"]
+    WEB["Company<br/>website"]
+    MAN["Manual add<br/>/ import"]
+  end
+
+  subgraph EXT["Browser extension"]
+    CAP["Capture people<br/>(dedupe + accumulate)"]
+    WIZ["Website wizard<br/>profile → About → URL"]
+    ABC["allabolag capture<br/>org.nr · phone · financials"]
+  end
+
+  subgraph APP["Web app"]
+    PIPE["Company pipeline<br/>+ contact points<br/>+ ≥15 counter"]
+    ENR["Enrichment<br/>website crawl + search"]
+    TPL["Templates<br/>{{merge fields}}"]
+    OUT["3-channel outreach<br/>+ stage tracking"]
+  end
+
+  subgraph OUTP["Outputs"]
+    DRAFT["Email / LinkedIn / phone<br/>drafts (you send)"]
+    OBX["Outbox log"]
+    LEX["Lexicon ≥15<br/>CSV + cover"]
+  end
+
+  LI --> CAP --> PIPE
+  LI --> WIZ --> PIPE
+  AB --> ABC --> PIPE
+  MAN --> PIPE
+  WEB --> ENR
+  PIPE --> ENR --> PIPE
+  PIPE --> TPL --> OUT
+  OUT --> DRAFT
+  OUT --> OBX
+  PIPE -- "when ≥15 ready" --> LEX
 ```
 
 ## Tech stack
