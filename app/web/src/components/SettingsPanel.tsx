@@ -44,7 +44,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
   const anyLocked = providerLocked || keyLocked || cseLocked;
 
   const meta = PROVIDERS.find((p) => p.value === provider)!;
-  const field = "w-full rounded-xl border border-border px-3 py-1.5 text-sm focus:border-accent-strong focus:outline-none disabled:bg-surface-hover disabled:text-faint";
+  const field = "w-full rounded-xl bg-surface-hover px-3 py-1.5 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-60";
 
   const save = async () => {
     const dto: { searchProvider: string; searchGoogleCseId: string | null; searchApiKey?: string } = {
@@ -63,7 +63,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <div className="rounded-2xl bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="cog" className="text-brand" /> Settings
@@ -102,7 +102,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
       </div>
 
       {anyLocked && (
-        <p className="mt-2 rounded-lg bg-warning/10 px-2 py-1 text-[11px] text-warning">
+        <p className="mt-2 rounded-lg border-l-4 border-warning bg-warning/10 px-2 py-1 text-[11px] font-medium text-warning">
           <Icon name="lock" /> Managed via user-secrets / environment — locked fields override the UI.
         </p>
       )}

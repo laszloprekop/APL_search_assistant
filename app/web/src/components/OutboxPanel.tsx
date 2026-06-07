@@ -25,7 +25,7 @@ export function OutboxPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <div className="rounded-2xl bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="tray-full" className="text-brand" /> Outbox

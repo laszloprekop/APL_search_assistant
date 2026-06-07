@@ -83,7 +83,7 @@ interface Step {
 
 function StepCard({ n, icon, iconClass, title, what, how, why }: Step & { n: number }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <section className="rounded-2xl bg-surface p-4 shadow-sm">
       <h3 className="flex items-center gap-2 font-semibold text-brand">
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-white">{n}</span>
         <Icon name={icon} className={iconClass ?? "text-brand"} />
@@ -224,7 +224,7 @@ function Faq() {
 function QA({ q, children }: { q: string; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="rounded-xl border border-border bg-surface">
+    <div className="rounded-xl bg-surface">
       <button onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand hover:bg-surface-hover">
         <Icon name={open ? "chevron-down" : "chevron-right"} className="shrink-0 text-faint" />

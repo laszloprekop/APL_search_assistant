@@ -7,7 +7,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
   const done = stats.readyForList >= stats.target;
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <div className="rounded-2xl bg-surface p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex items-baseline gap-2">
           <Icon name="format-list-checks" className="text-brand" />

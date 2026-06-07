@@ -26,7 +26,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
   }, []);
 
   if (!p) return (
-    <div className="rounded-2xl border border-border bg-surface p-6 text-sm text-faint">Loading…</div>
+    <div className="rounded-2xl bg-surface p-6 text-sm text-faint">Loading…</div>
   );
 
   const finalBody = includeTable ? `${body}\n\n${p.table}` : body;
@@ -52,7 +52,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <div className="rounded-2xl bg-surface p-4 shadow-sm">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="format-list-checks" className="text-brand" /> Lexicon list
@@ -64,7 +64,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
       </div>
 
       {!enough && (
-        <p className="mb-3 rounded-lg bg-warning/10 px-2 py-1 text-[11px] text-warning">
+        <p className="mb-3 rounded-lg border-l-4 border-warning bg-warning/10 px-2 py-1 text-[11px] font-medium text-warning">
           <Icon name="alert-circle-outline" /> Only {p.count} companies have both a real email and phone.
           The bar is {p.target}; you can still preview/submit, but enrich more first if you can.
         </p>
@@ -100,7 +100,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
           </div>
 
           {(hasMarkers(subject) || hasMarkers(body)) && (
-            <p className="mb-2 rounded-lg bg-warning/10 px-2 py-1 text-[11px] text-warning">
+            <p className="mb-2 rounded-lg border-l-4 border-warning bg-warning/10 px-2 py-1 text-[11px] font-medium text-warning">
               <Icon name="alert-circle-outline" /> The cover email has unset fields (<code>[field?]</code>).
               Fill them in Settings → Your details, or edit below.
             </p>
@@ -108,15 +108,15 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
 
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="text-[11px] text-muted">To
-              <input value={to} onChange={(e) => setTo(e.target.value)} className="mt-0.5 w-full rounded-xl border border-border px-2 py-1 text-sm" />
+              <input value={to} onChange={(e) => setTo(e.target.value)} className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
             </label>
             <label className="text-[11px] text-muted">Subject
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-0.5 w-full rounded-xl border border-border px-2 py-1 text-sm" />
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
             </label>
           </div>
           <label className="mt-2 block text-[11px] text-muted">Cover email body
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8}
-              className="mt-0.5 w-full rounded-xl border border-border px-2 py-1.5 font-mono text-xs leading-relaxed" />
+              className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1.5 font-mono text-xs leading-relaxed text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
           </label>
           <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted">
             <input type="checkbox" checked={includeTable} onChange={(e) => setIncludeTable(e.target.checked)} className="accent-brand" />
@@ -133,14 +133,14 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
               className="inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover">
               <Icon name="download" /> 1 · Download CSV{downloaded && " ✓"}
             </button>
-            <a href={mailto} className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-hover">
+            <a href={mailto} className="inline-flex items-center gap-1 rounded-xl bg-surface-hover px-3 py-1.5 text-xs font-medium text-brand hover:bg-border">
               <Icon name="email-fast-outline" /> 2 · Open in email app
             </a>
-            <a href={gmail} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-border px-3 py-1.5 text-xs font-medium text-muted hover:bg-surface-hover">
+            <a href={gmail} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl bg-surface-hover px-3 py-1.5 text-xs font-medium text-brand hover:bg-border">
               <Icon name="gmail" /> Open in Gmail
             </a>
             <button onClick={submit}
-              className="ml-auto inline-flex items-center gap-1 rounded-xl border border-success/40 bg-success/10 px-3 py-1.5 text-xs font-medium text-success hover:bg-success/15">
+              className="ml-auto inline-flex items-center gap-1 rounded-xl bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-hover">
               <Icon name="check-circle-outline" /> 3 · Mark as submitted
             </button>
             {msg && <span className="text-xs text-success">{msg}</span>}

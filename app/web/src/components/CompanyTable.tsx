@@ -58,7 +58,7 @@ export function CompanyTable({
     );
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div className="overflow-hidden rounded-2xl bg-surface shadow-sm">
       <table className="w-full text-left text-sm">
         <thead className="bg-surface-hover text-xs uppercase tracking-wide text-faint">
           <tr>
@@ -87,7 +87,7 @@ export function CompanyTable({
                     if (window.getSelection()?.toString()) return;
                     toggle(c.id);
                   }}
-                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/25" : "hover:bg-surface-hover"}`}
+                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
                 >
                   <td className="px-3 py-2 align-top">
                     <button onClick={() => toggle(c.id)} className="text-faint hover:text-brand">
@@ -174,7 +174,7 @@ export function CompanyTable({
                     company row above (no divider) and sharing its open/hover background. */}
                 <tr
                   onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
-                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/25" : "hover:bg-surface-hover"}`}
+                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
                 >
                   <td></td>
                   <td colSpan={7} className="px-3 pb-2 pt-0">
@@ -182,7 +182,7 @@ export function CompanyTable({
                   </td>
                 </tr>
                 {open.has(c.id) && (
-                  <tr className="bg-accent/25">
+                  <tr className="bg-accent/15">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
@@ -240,7 +240,7 @@ function ExpandedRow({
     finally { setPBusy(null); }
   };
 
-  const field = "mt-0.5 w-full rounded-lg border border-border px-2 py-1 text-xs";
+  const field = "mt-0.5 w-full rounded-lg bg-surface-hover px-2 py-1 text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   return (
     <div className="space-y-4">
@@ -250,10 +250,10 @@ function ExpandedRow({
       <div className="grid gap-4 md:grid-cols-3">
         {/* Left: add a contact point (labelled, stacked) — 1/3 width. */}
         <div className="md:col-span-1">
-          <h4 className="mb-2 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
+          <h4 className="mb-2 flex items-center gap-1 text-xs font-bold uppercase text-brand">
             <Icon name="plus-circle-outline" /> Add a contact point
           </h4>
-          <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+          <div className="space-y-2 rounded-xl bg-surface p-3">
             {c.persons.length > 0 && (
               <label className="block text-[11px] font-medium text-muted">
                 Belongs to
@@ -289,7 +289,7 @@ function ExpandedRow({
                 <option value="Manual">Manual</option>
               </select>
             </label>
-            <button onClick={submit} className="w-full rounded-lg bg-brand px-2 py-1.5 text-xs font-medium text-white hover:bg-brand-hover">
+            <button onClick={submit} className="w-full rounded-lg bg-accent px-2 py-1.5 text-xs font-semibold text-brand hover:bg-accent-strong">
               <Icon name="plus" /> Add contact point
             </button>
           </div>
@@ -298,7 +298,7 @@ function ExpandedRow({
         {/* Right: one merged list, grouped by Persons + generic company contact points (2/3 width). */}
         <div className="space-y-3 md:col-span-2">
           <div>
-            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-bold uppercase text-brand">
               <Icon name="account-multiple" /> Persons
             </h4>
             {c.persons.length === 0 && <p className="text-xs text-faint">None</p>}
@@ -313,7 +313,7 @@ function ExpandedRow({
                     </div>
                     <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
                       title={c.website ? "Look up this person's email/phone on the company website" : "Find the company website first (step 1)"}
-                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg border border-border bg-surface px-1.5 py-0.5 text-[11px] text-muted hover:bg-surface-hover disabled:opacity-40">
+                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg bg-surface-hover px-1.5 py-0.5 text-[11px] font-medium text-brand hover:bg-border disabled:opacity-40">
                       <Icon name="account-search" /> {pBusy === p.id ? "…" : "Find contact"}
                     </button>
                   </div>
@@ -330,7 +330,7 @@ function ExpandedRow({
           </div>
 
           <div>
-            <h4 className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase text-faint">
+            <h4 className="mb-1 flex items-center gap-1 text-xs font-bold uppercase text-brand">
               <Icon name="card-account-mail" /> Company contact points <span className="font-normal normal-case text-faint">generic</span>
             </h4>
             <ul className="space-y-1">
@@ -396,7 +396,7 @@ function EnrichmentSection({
   };
 
   const em = enrichmentMeta(c.enrichmentStatus);
-  const inp = "w-full rounded-lg border border-border px-2 py-1 text-xs";
+  const inp = "w-full rounded-lg bg-surface-hover px-2 py-1 text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   // Save is enabled only when something actually changed (issue: avoid no-op submits).
   const norm = (s?: string | null) => (s ?? "").trim();
@@ -465,7 +465,7 @@ function EnrichmentSection({
   }, [c.updatedAt]);
 
   return (
-    <div className="space-y-2 rounded-xl border border-border bg-surface p-3">
+    <div className="space-y-2 rounded-xl bg-surface p-3">
       {/* Action feedback sits at the top — i.e. directly below the StepRow action buttons. */}
       {busy && <p className="text-xs text-faint">Working…</p>}
       {searchMsg && <p className="text-xs text-warning">{searchMsg}</p>}
@@ -474,7 +474,7 @@ function EnrichmentSection({
           <p className="text-[11px] text-faint">“Use” sets it + enriches; “Discard” drops the suggestion:</p>
           {cands.map((cand) => (
             <div key={cand.url}
-              className="flex items-center gap-2 rounded-lg border border-border px-2 py-1 text-xs">
+              className="flex items-center gap-2 rounded-lg bg-surface-hover px-2 py-1 text-xs">
               <a href={cand.url} target="_blank" rel="noreferrer" title="Preview in new tab"
                 className="flex items-center gap-1 font-medium text-brand hover:underline">
                 <Icon name="open-in-new" className="text-faint" />
@@ -488,7 +488,7 @@ function EnrichmentSection({
               </button>
               <button onClick={() => setCands((cs) => (cs ? cs.filter((x) => x.url !== cand.url) : cs))}
                 title="Discard this suggestion"
-                className="shrink-0 rounded-lg border border-border px-2 py-0.5 text-muted hover:bg-surface-hover">
+                className="shrink-0 rounded-lg bg-surface px-2 py-0.5 text-muted hover:bg-border">
                 Discard
               </button>
             </div>
@@ -534,7 +534,7 @@ function EnrichmentSection({
       <div className="flex flex-wrap items-center gap-2">
         <button onClick={save} disabled={!dirty}
           title={dirty ? "Save your edits" : "No changes to save"}
-          className="rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-brand">
+          className="rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-brand hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-accent">
           <Icon name="content-save" /> Save fields
         </button>
         <span className={`inline-flex items-center gap-1 text-xs ${em.cls}`}>
@@ -602,36 +602,41 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
   );
 }
 
-// Collapsed-row enrichment progression — the single source of step actions. A satisfied step
-// drops its border to a plain capsule and shows a refresh icon (click to re-run); otherwise a
-// numbered filled pill that runs the step (1/2 in-app, 3 opens allabolag for the extension).
+// Collapsed-row enrichment progression — the single source of step actions. A finished step is a
+// quiet capsule with a refresh icon (click to re-run); the next unfinished step is highlighted in
+// gold (the one thing to do next); later unfinished steps stay neutral. Colour is spent on the
+// single "do this next" action, not the whole row.
 function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts") => void }) {
   const wDone = !!c.website;
   const kDone = c.hasEmail && c.hasPhone;
   const oDone = !!c.orgNumber;
-  const pill = (done: boolean, active: string) =>
-    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${done ? "bg-surface-hover text-muted hover:bg-border" : `border ${active}`}`;
-  const mark = (n: number, done: boolean, dot: string) =>
+  const activeStep = !wDone ? 1 : !kDone ? 2 : !oDone ? 3 : 0; // first unfinished step = the gold CTA
+  const pill = (done: boolean, active: boolean) =>
+    `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+      done ? "bg-surface-hover text-muted hover:bg-border"
+        : active ? "bg-accent text-brand hover:bg-accent-strong"
+        : "bg-surface-hover text-brand hover:bg-border"}`;
+  const mark = (n: number, done: boolean) =>
     done ? <Icon name="refresh" className="text-faint" />
-      : <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] font-bold text-white ${dot}`}>{n}</span>;
+      : <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-[9px] font-bold text-white">{n}</span>;
   return (
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
       <button title={wDone ? "Re-find the company website" : "Step 1 — find the company website"}
         onClick={(e) => { e.stopPropagation(); onStep("website"); }}
-        className={pill(wDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
-        {mark(1, wDone, "bg-success")} Find Company Website
+        className={pill(wDone, activeStep === 1)}>
+        {mark(1, wDone)} Find Company Website
       </button>
       <Icon name="chevron-right" className="text-faint" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
-        className={pill(kDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
-        {mark(2, kDone, "bg-success")} Scan Company Contacts
+        className={pill(kDone, activeStep === 2)}>
+        {mark(2, kDone)} Scan Company Contacts
       </button>
       <Icon name="chevron-right" className="text-faint" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
-        className={pill(oDone, "border-success/30 bg-success/10 text-success hover:bg-success/15")}>
-        {mark(3, oDone, "bg-success")} Scan Allabolag
+        className={pill(oDone, activeStep === 3)}>
+        {mark(3, oDone)} Scan Allabolag
       </a>
     </div>
   );

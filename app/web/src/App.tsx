@@ -78,31 +78,31 @@ function App() {
           <div className="flex gap-2">
             <button onClick={() => setGuideOpen(true)}
               title="User guide — how the app works, step by step"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="book-open-page-variant" className="text-brand" /> Guide
             </button>
             <button onClick={() => setPanel(panel === "lexicon" ? "none" : "lexicon")}
               title="Generate + submit the ≥15 Lexicon list"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="format-list-checks" className="text-brand" /> Lexicon list
             </button>
             <button onClick={() => setPanel(panel === "outbox" ? "none" : "outbox")}
               title="Outbox — outreach activity log"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="tray-full" /> Outbox
             </button>
             <button onClick={() => setPanel(panel === "templates" ? "none" : "templates")}
               title="Outreach templates"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="text-box-multiple-outline" />
             </button>
             <button onClick={() => setPanel(panel === "settings" ? "none" : "settings")}
               title="Settings"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="cog" />
             </button>
             <button onClick={() => setPanel(panel === "import" ? "none" : "import")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-1.5 text-sm font-medium text-muted hover:bg-surface-hover">
+              className="inline-flex items-center gap-1.5 rounded-xl bg-surface px-3 py-1.5 text-sm font-medium text-brand hover:bg-surface-hover">
               <Icon name="linkedin" className="text-linkedin" /> Import capture
             </button>
             <button onClick={() => setPanel(panel === "add" ? "none" : "add")}
@@ -130,7 +130,7 @@ function App() {
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-muted"><Icon name="filter-variant" /> Filter</span>
           <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
-            className="rounded-xl border border-border bg-surface px-2 py-1 text-sm">
+            className="rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60">
             <option value="">All stages</option>
             {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>

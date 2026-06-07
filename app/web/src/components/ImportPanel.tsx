@@ -38,7 +38,7 @@ export function ImportPanel({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-4 shadow-sm">
+    <div className="rounded-2xl bg-surface p-4 shadow-sm">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="import" className="text-brand" /> Import LinkedIn capture
@@ -53,7 +53,7 @@ export function ImportPanel({
         onChange={(e) => setText(e.target.value)}
         rows={6}
         placeholder='[{"name":"…","company":"…","handle":"…", …}]'
-        className="w-full rounded-xl border border-border p-2 font-sans text-xs focus:border-accent-strong focus:outline-none"
+        className="w-full rounded-xl bg-surface-hover p-2 font-sans text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60"
       />
       {error && <p className="mt-2 text-xs text-danger"><Icon name="alert-circle" /> {error}</p>}
       {result && (
