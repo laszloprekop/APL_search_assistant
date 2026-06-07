@@ -13,7 +13,7 @@
     --apl-border:#e0e0e0; --apl-surface-2:#f0f0f0; --apl-surface-3:#e7e4df;
     --apl-brand:#3a3a3a; --apl-brand-hover:#252525;
     --apl-accent:#fed66e; --apl-accent-strong:#face4e; --apl-accent-soft:#fcefc7;
-    --apl-success:#16a34a; --apl-warning:#c2620a; --apl-danger:#dc2626;
+    --apl-success:#739a26; --apl-warning:#c2620a; --apl-danger:#dc2626;
     --apl-radius:14px; --apl-radius-btn:11px;
     --apl-font:"IBM Plex Sans Condensed",-apple-system,system-ui,"Segoe UI",Roboto,sans-serif;
   `;
