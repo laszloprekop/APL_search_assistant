@@ -54,7 +54,7 @@ export function UserGuide({ onClose }: { onClose: () => void }) {
 
 function Intro() {
   return (
-    <div className="mb-5 rounded-2xl border border-accent-strong/40 bg-accent/30 p-4 text-sm text-muted">
+    <div className="mb-5 rounded-2xl border border-accent-strong/40 bg-accent/10 p-4 text-sm text-muted">
       <p className="flex items-center gap-1.5 font-semibold text-brand">
         <Icon name="briefcase-search" className="text-brand" /> What this app is for
       </p>

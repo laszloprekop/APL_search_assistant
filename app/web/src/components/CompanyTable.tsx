@@ -60,7 +60,7 @@ export function CompanyTable({
   return (
     <div className="overflow-hidden rounded-2xl bg-surface shadow-sm">
       <table className="w-full text-left text-sm">
-        <thead className="bg-surface-hover text-xs uppercase tracking-wide text-faint">
+        <thead className="bg-accent text-xs uppercase tracking-wide text-brand">
           <tr>
             <th className="w-8 px-3 py-2"></th>
             <th className="px-3 py-2">Company</th>
@@ -78,7 +78,7 @@ export function CompanyTable({
           const isOpen = open.has(c.id);
           // The header (column row + step row) is one <tbody> group, so hovering anywhere on it
           // highlights the whole header; the expanded body is its own group with its own hover.
-          const headerHover = isOpen ? "bg-accent/30 group-hover/h:bg-accent/40" : "group-hover/h:bg-surface-hover";
+          const headerHover = isOpen ? "bg-accent/10 group-hover/h:bg-accent/40" : "group-hover/h:bg-accent/40";
           return (
             <Fragment key={c.id}>
               <tbody className="group/h cursor-pointer">
@@ -94,7 +94,7 @@ export function CompanyTable({
                   className={headerHover}
                 >
                   <td className="px-3 pb-0 pt-2 align-top">
-                    <button onClick={() => toggle(c.id)} className="opacity-50 hover:opacity-100">
+                    <button onClick={() => toggle(c.id)} className="text-lg text-brand">
                       <Icon name={isOpen ? "chevron-down" : "chevron-right"} />
                     </button>
                   </td>
@@ -186,7 +186,7 @@ export function CompanyTable({
               </tbody>
               {isOpen && (
                 <tbody className="group/b">
-                  <tr className="bg-accent/30 group-hover/b:bg-accent/40">
+                  <tr className="bg-accent/10 ">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
