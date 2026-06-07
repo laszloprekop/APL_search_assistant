@@ -4,6 +4,17 @@ A **local-first** web app + browser extension that automates the grindy parts of
 LTU **APL (internship) search** — discovery, enrichment, personalized outreach, and the required
 ≥15-host contact list — while keeping a human on every send button.
 
+**One place for the whole APL search grind:**
+
+- **Start a Boolean people-search on LinkedIn** — from a saved, reusable query.
+- **Capture the results** and look up each person's company website.
+- **Send the list to the app**, then enrich contact data further from the website and *allabolag.se*.
+- **Add, edit, or remove** contacts and details by hand.
+- **Start reaching out** with the pre-made, customized outreach templates.
+- **Import / export** the list to and from spreadsheets.
+- **Track the status** of every contact attempt through the pipeline.
+- **Filter the list** by stage or ready-only for a quick overview.
+
 > Built for the Lexicon LTU VT-2026 APL search, and as a portfolio piece in the course stack
 > (ASP.NET Core + EF Core/SQLite + React + a Chrome MV3 extension).
 
