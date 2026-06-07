@@ -128,7 +128,14 @@ export function CompanyTable({
                       // Exactly one → safe to name. Several → a count, not an arbitrary pick.
                       <div data-noexpand className="flex cursor-text items-center gap-1 text-brand">
                         {person.linkedInUrl && <Icon name="linkedin" className="text-linkedin" title="LinkedIn profile" />}
-                        <span>{person.name}</span>
+                        {person.linkedInUrl ? (
+                          <a href={person.linkedInUrl} target="_blank" rel="noreferrer"
+                            className="hover:text-linkedin hover:underline" title="Open LinkedIn profile">
+                            {person.name}
+                          </a>
+                        ) : (
+                          <span>{person.name}</span>
+                        )}
                       </div>
                     ) : (
                       <span className="inline-flex items-center gap-1 text-muted"
