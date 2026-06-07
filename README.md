@@ -29,9 +29,9 @@ companies by hand, expand a row for the full profile.
   a name mismatch like *Euroclear* vs *Euroclear Sweden AB* still lands correctly).
 
 <p>
-  <img src="Docs/extension-linkedin1.png" alt="LinkedIn capture: build the list → add website URLs → output" width="270">
-  <img src="Docs/extension-linkedin2.png" alt="The website-enrichment wizard showing live results" width="270">
-  <img src="Docs/extension-allabolag.png" alt="allabolag capture pinned to an app company" width="270">
+  <img src="Docs/Browser_ext_1.png" alt="LinkedIn capture panel: the three-step flow — build the list, add website URLs, output" width="260">
+  <img src="Docs/Browser_ext_2.png" alt="Captured people accumulate (deduped) across search pages" width="260">
+  <img src="Docs/Browser_ext_3.png" alt="The guided website-enrichment wizard walking each profile → company About" width="260">
 </p>
 
 **Enrichment.** Cautious, polite public-website fetch (homepage + likely contact/team pages —
@@ -72,7 +72,8 @@ app ──▶ enrich (website crawl + search) ──▶ contacts ──▶ outre
 
 - **Backend:** ASP.NET Core Minimal APIs (.NET 10), EF Core + **SQLite** (`apl.db`), code-first
   migrations applied on startup.
-- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS v4.
+- **Frontend:** React 18 + Vite + TypeScript + Tailwind CSS v4 — a token-based theme
+  (charcoal/gold palette), IBM Plex Sans Condensed type, and Material Design Icons.
 - **Extension:** Chrome Manifest V3 content scripts (LinkedIn + allabolag), semantic-anchor DOM
   parsing, shared pure-JS parser with a Node test suite.
 
