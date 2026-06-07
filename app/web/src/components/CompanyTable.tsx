@@ -72,12 +72,16 @@ export function CompanyTable({
             <th className="px-3 py-2"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">
-          {companies.map((c) => {
-            const person = c.persons[0];
-            const em = enrichmentMeta(c.enrichmentStatus);
-            return (
-              <Fragment key={c.id}>
+        {companies.map((c) => {
+          const person = c.persons[0];
+          const em = enrichmentMeta(c.enrichmentStatus);
+          const isOpen = open.has(c.id);
+          // The header (column row + step row) is one <tbody> group, so hovering anywhere on it
+          // highlights the whole header; the expanded body is its own group with its own hover.
+          const headerHover = isOpen ? "bg-accent/30 group-hover/h:bg-accent/40" : "group-hover/h:bg-surface-hover";
+          return (
+            <Fragment key={c.id}>
+              <tbody className="group/h cursor-pointer">
                 <tr
                   onClick={(e) => {
                     // Empty parts of the row toggle expand/collapse; links/controls and text
@@ -87,16 +91,16 @@ export function CompanyTable({
                     if (window.getSelection()?.toString()) return;
                     toggle(c.id);
                   }}
-                  className={`border-b-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
+                  className={headerHover}
                 >
-                  <td className="px-3 py-2 align-top">
-                    <button onClick={() => toggle(c.id)} className="text-faint hover:text-brand">
-                      <Icon name={open.has(c.id) ? "chevron-down" : "chevron-right"} />
+                  <td className="px-3 pb-0 pt-2 align-top">
+                    <button onClick={() => toggle(c.id)} className="opacity-50 hover:opacity-100">
+                      <Icon name={isOpen ? "chevron-down" : "chevron-right"} />
                     </button>
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 pb-0 pt-2 align-top">
                     <div className="flex items-center gap-1.5 font-medium text-brand">
-                      <Icon name={sourceIcon(c.source)} className={c.source === "LinkedIn" ? "text-linkedin" : "text-faint"} title={c.source} />
+                      <Icon name={sourceIcon(c.source)} className={c.source === "LinkedIn" ? "text-linkedin" : "opacity-40"} title={c.source} />
                       {c.linkedInUrl ? (
                         <a href={c.linkedInUrl} target="_blank" rel="noreferrer"
                           className="hover:text-linkedin hover:underline"
@@ -117,7 +121,7 @@ export function CompanyTable({
                       {[c.locationKommun, c.locationLan].filter(Boolean).join(" · ") || "—"}
                     </div>
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 pb-0 pt-2 align-top">
                     {c.persons.length === 0 ? (
                       <span className="text-faint">—</span>
                     ) : c.persons.length === 1 ? (
@@ -129,20 +133,20 @@ export function CompanyTable({
                     ) : (
                       <span className="inline-flex items-center gap-1 text-muted"
                         title="Several contacts — expand to see them all">
-                        <Icon name="account-multiple" className="text-faint" /> {c.persons.length} persons
+                        <Icon name="account-multiple" className="opacity-60" /> {c.persons.length} persons
                       </span>
                     )}
                   </td>
-                  <td className="px-3 py-2 text-center align-top">
+                  <td className="px-3 pb-0 pt-2 text-center align-top">
                     <span className="inline-flex gap-1.5">
-                      <Icon name="email" className={c.hasEmail ? "text-success" : "text-border"} />
-                      <Icon name="phone" className={c.hasPhone ? "text-success" : "text-border"} />
+                      <Icon name="email" className={c.hasEmail ? "text-success" : "opacity-20"} />
+                      <Icon name="phone" className={c.hasPhone ? "text-success" : "opacity-20"} />
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-center align-top" title={em.label}>
+                  <td className="px-3 pb-0 pt-2 text-center align-top" title={em.label}>
                     <Icon name={em.icon} className={em.cls} />
                   </td>
-                  <td className="px-3 py-2 align-top">
+                  <td className="px-3 pb-0 pt-2 align-top">
                     <select
                       value={c.stage}
                       onChange={(e) => onChangeStage(c, e.target.value as CompanyStage)}
@@ -153,52 +157,48 @@ export function CompanyTable({
                       ))}
                     </select>
                   </td>
-                  <td className="px-3 py-2 text-center align-top">
+                  <td className="px-3 pb-0 pt-2 text-center align-top">
                     {c.readyForList ? (
                       <Icon name="check-circle" className="text-success" />
                     ) : (
-                      <Icon name="circle-outline" className="text-border" />
+                      <Icon name="circle-outline" className="opacity-20" />
                     )}
                   </td>
-                  <td className="px-3 py-2 text-right align-top">
+                  <td className="px-3 pb-0 pt-2 text-right align-top">
                     <button
                       onClick={() => onDelete(c.id)}
-                      className="text-faint hover:text-danger"
+                      className="opacity-40 hover:text-danger hover:opacity-100"
                       title="Delete company"
                     >
                       <Icon name="trash-can-outline" />
                     </button>
                   </td>
                 </tr>
-                {/* Step actions on their own full-width row so they never wrap. Attached to the
-                    company row above (no divider) and sharing its open/hover background. */}
-                <tr
-                  onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
-                  className={`border-t-0 cursor-pointer ${open.has(c.id) ? "bg-accent/15" : "hover:bg-surface-hover"}`}
-                >
+                {/* Step actions on their own full-width row so they never wrap — part of the same
+                    header group, so they share its hover/open background. */}
+                <tr onClick={(e) => { if ((e.target as HTMLElement).closest("a, button") === null) toggle(c.id); }}
+                  className={headerHover}>
                   <td></td>
-                  <td colSpan={7} className="px-3 pb-2 pt-0">
+                  <td colSpan={7} className="px-3 pb-2 pt-1">
                     <StepRow c={c} onStep={(k) => startStep(c, k)} />
                   </td>
                 </tr>
-                {open.has(c.id) && (
-                  <tr className="bg-accent/15">
+              </tbody>
+              {isOpen && (
+                <tbody className="group/b">
+                  <tr className="bg-accent/30 group-hover/b:bg-accent/40">
                     <td></td>
                     <td colSpan={7} className="px-3 py-3">
                       <ExpandedRow c={c} onAddContact={onAddContact} onDeleteContact={onDeleteContact} onEnrich={onEnrich} onUpdateFields={onUpdateFields} onFindWebsite={onFindWebsite} onFindLinkedin={onFindLinkedin} onSetContactStatus={onSetContactStatus} onEnrichPerson={onEnrichPerson} onRefresh={onRefresh} autoRun={pending[c.id] ?? null} onAutoRan={() => clearPending(c.id)} />
                     </td>
                   </tr>
-                )}
-                {/* 5px white gap below an expanded company so two adjacent open rows are separated. */}
-                {open.has(c.id) && (
-                  <tr aria-hidden>
-                    <td colSpan={8} className="bg-transparent"><div className="h-0 border-b-16 border-white" /></td>
-                  </tr>
-                )}
-              </Fragment>
-            );
-          })}
-        </tbody>
+                </tbody>
+              )}
+              {/* Whitespace between companies (replaces the row dividers). */}
+              <tbody aria-hidden><tr><td colSpan={8}><div className="h-2" /></td></tr></tbody>
+            </Fragment>
+          );
+        })}
       </table>
     </div>
   );
@@ -240,7 +240,7 @@ function ExpandedRow({
     finally { setPBusy(null); }
   };
 
-  const field = "mt-0.5 w-full rounded-lg bg-surface-hover px-2 py-1 text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
+  const field = "mt-0.5 w-full rounded-lg bg-input px-2 py-1 text-xs text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   return (
     <div className="space-y-4">
@@ -396,7 +396,7 @@ function EnrichmentSection({
   };
 
   const em = enrichmentMeta(c.enrichmentStatus);
-  const inp = "w-full rounded-lg bg-surface-hover px-2 py-1 text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
+  const inp = "w-full rounded-lg bg-input px-2 py-1 text-xs text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   // Save is enabled only when something actually changed (issue: avoid no-op submits).
   const norm = (s?: string | null) => (s ?? "").trim();
@@ -477,7 +477,7 @@ function EnrichmentSection({
               className="flex items-center gap-2 rounded-lg bg-surface-hover px-2 py-1 text-xs">
               <a href={cand.url} target="_blank" rel="noreferrer" title="Preview in new tab"
                 className="flex items-center gap-1 font-medium text-brand hover:underline">
-                <Icon name="open-in-new" className="text-faint" />
+                <Icon name="open-in-new" className="opacity-50" />
                 {cand.url.replace(/^https?:\/\//, "")}
               </a>
               <span className="truncate text-faint">{cand.title}</span>
@@ -570,7 +570,7 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
   const icon = ct.type === "Email" ? "email" : ct.type === "Phone" ? "phone" : "linkedin";
   return (
     <li className="flex items-center gap-2 text-sm">
-      <Icon name={icon} className={isLinkedIn ? "shrink-0 text-linkedin" : guessed ? "shrink-0 text-warning" : "shrink-0 text-faint"} />
+      <Icon name={icon} className={isLinkedIn ? "shrink-0 text-linkedin" : guessed ? "shrink-0 text-warning" : "shrink-0 opacity-50"} />
       {isLinkedIn ? (
         <a href={ct.value} target="_blank" rel="noreferrer" title={ct.value}
           className="break-all text-brand hover:underline">
@@ -595,7 +595,7 @@ function ContactRow({ ct, onSetStatus, onDelete }: {
         className={`ml-auto shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-medium ring-1 ${outreachCls(ct.outreachStatus)}`}>
         {OUTREACH.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
-      <button onClick={() => ct.id && onDelete(ct.id)} className="shrink-0 text-faint hover:text-danger" title="Delete">
+      <button onClick={() => ct.id && onDelete(ct.id)} className="shrink-0 opacity-40 hover:text-danger hover:opacity-100" title="Delete">
         <Icon name="close" />
       </button>
     </li>
@@ -613,11 +613,11 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
   const activeStep = !wDone ? 1 : !kDone ? 2 : !oDone ? 3 : 0; // first unfinished step = the gold CTA
   const pill = (done: boolean, active: boolean) =>
     `inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-      done ? "bg-surface-hover text-muted hover:bg-border"
+      done ? "bg-surface text-muted hover:bg-surface-hover"
         : active ? "bg-accent text-brand hover:bg-accent-strong"
         : "bg-surface-hover text-brand hover:bg-border"}`;
   const mark = (n: number, done: boolean) =>
-    done ? <Icon name="refresh" className="text-faint" />
+    done ? <Icon name="refresh" className="opacity-50" />
       : <span className="grid h-4 w-4 place-items-center rounded-full bg-brand text-[9px] font-bold text-white">{n}</span>;
   return (
     <div data-noexpand className="mt-1.5 flex flex-wrap items-center gap-1">
@@ -626,13 +626,13 @@ function StepRow({ c, onStep }: { c: Company; onStep: (k: "website" | "contacts"
         className={pill(wDone, activeStep === 1)}>
         {mark(1, wDone)} Find Company Website
       </button>
-      <Icon name="chevron-right" className="text-faint" />
+      <Icon name="chevron-right" className="opacity-40" />
       <button title={kDone ? "Re-fetch contacts from the site" : "Step 2 — find email/phone from the site"}
         onClick={(e) => { e.stopPropagation(); onStep("contacts"); }}
         className={pill(kDone, activeStep === 2)}>
         {mark(2, kDone)} Scan Company Contacts
       </button>
-      <Icon name="chevron-right" className="text-faint" />
+      <Icon name="chevron-right" className="opacity-40" />
       <a title={oDone ? "Re-open on allabolag" : "Step 3 — open on allabolag (capture org.nr / financials / phone with the extension)"}
         href={allabolagUrl(c.name, c.id)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}
         className={pill(oDone, activeStep === 3)}>

@@ -21,7 +21,7 @@ export const sourceIcon = (s: CompanySource) =>
   s === "LinkedIn" ? "linkedin" : s === "Allabolag" ? "office-building-marker" : "pencil";
 
 export const ENRICHMENT: { value: EnrichmentStatus; label: string; icon: string; cls: string }[] = [
-  { value: "Pending", label: "Pending", icon: "clock-outline", cls: "text-faint" },
+  { value: "Pending", label: "Pending", icon: "clock-outline", cls: "opacity-40" },
   { value: "Enriched", label: "Enriched", icon: "check-decagram", cls: "text-success" },
   { value: "NeedsManualLookup", label: "Needs lookup", icon: "phone-alert", cls: "text-warning" },
 ];

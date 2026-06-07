@@ -6,13 +6,13 @@ import { Icon } from "../lib/ui";
 const CHANNELS: { ch: OutreachChannel; label: string; icon: string; iconCls: string }[] = [
   { ch: "Email", label: "Email draft", icon: "email-outline", iconCls: "text-brand" },
   { ch: "Linkedin", label: "LinkedIn message", icon: "linkedin", iconCls: "text-linkedin" },
-  { ch: "Phone", label: "Phone script", icon: "phone-outline", iconCls: "text-success" },
+  { ch: "Phone", label: "Phone script", icon: "phone-outline", iconCls: "text-brand" },
 ];
 
 const enc = encodeURIComponent;
 const hasMarkers = (s?: string | null) => !!s && /\[\w+\?\]/.test(s);
-const fieldCls = "rounded-xl bg-surface-hover px-1.5 py-1 text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
-const inputCls = "mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
+const fieldCls = "rounded-xl bg-input px-1.5 py-1 text-xs text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
+const inputCls = "mt-0.5 w-full rounded-xl bg-input px-2 py-1 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
 const ghostBtn = "inline-flex items-center gap-1 rounded-xl bg-surface-hover px-3 py-1.5 text-xs font-medium text-brand hover:bg-border";
 
 // Per-company outreach (PRD §6.5, no auto-send): pick a channel + optional person, preview the
@@ -90,7 +90,7 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
       <div className="flex flex-wrap gap-1.5">
         {CHANNELS.map((c) => (
           <button key={c.ch} onClick={() => open(c.ch)} disabled={busy !== null}
-            className="inline-flex items-center gap-1.5 rounded-full bg-surface-hover px-2.5 py-1 text-xs font-medium text-brand hover:bg-border disabled:opacity-50">
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-brand hover:bg-accent-strong disabled:opacity-50">
             <Icon name={c.icon} className={c.iconCls} /> {busy === c.ch ? "…" : c.label}
           </button>
         ))}
@@ -111,7 +111,7 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
                 {ch === "Email" ? "Email draft" : ch === "Linkedin" ? "LinkedIn message" : "Phone script"}
                 <span className="text-sm font-normal text-muted">· {company.name}</span>
               </h3>
-              <button onClick={close} className="text-faint hover:text-brand"><Icon name="close" /></button>
+              <button onClick={close} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
             </div>
 
             {(hasMarkers(body) || hasMarkers(subject)) && (
@@ -134,7 +134,7 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
             <label className="mt-2 block text-[11px] text-muted">
               {ch === "Phone" ? "Script (follow during the call)" : "Body"}
               <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={ch === "Phone" ? 14 : 12}
-                className="mt-0.5 w-full whitespace-pre-wrap rounded-xl bg-surface-hover px-2 py-1.5 font-mono text-xs leading-relaxed text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
+                className="mt-0.5 w-full whitespace-pre-wrap rounded-xl bg-input px-2 py-1.5 font-mono text-xs leading-relaxed text-brand focus:outline-none focus:ring-2 focus:ring-accent/60" />
             </label>
 
             {ch === "Phone" && (
@@ -163,7 +163,7 @@ export function OutreachCard({ company, onLogged }: { company: Company; onLogged
                 {copyMsg && <span className="text-xs font-medium text-success">{copyMsg}</span>}
               </>)}
               {ch === "Phone" && to && (
-                <a href={`tel:${to}`} className="inline-flex items-center gap-1 rounded-xl bg-success px-3 py-1.5 text-xs font-medium text-white hover:bg-success/90">
+                <a href={`tel:${to}`} className="inline-flex items-center gap-1 rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-brand hover:bg-accent-strong">
                   <Icon name="phone" /> Call {to}
                 </a>
               )}

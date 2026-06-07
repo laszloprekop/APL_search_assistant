@@ -44,7 +44,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
   const anyLocked = providerLocked || keyLocked || cseLocked;
 
   const meta = PROVIDERS.find((p) => p.value === provider)!;
-  const field = "w-full rounded-xl bg-surface-hover px-3 py-1.5 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-60";
+  const field = "w-full rounded-xl bg-input px-3 py-1.5 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60 disabled:opacity-60";
 
   const save = async () => {
     const dto: { searchProvider: string; searchGoogleCseId: string | null; searchApiKey?: string } = {
@@ -68,7 +68,7 @@ export function SettingsPanel({ onClose, onSaved }: { onClose: () => void; onSav
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="cog" className="text-brand" /> Settings
         </h3>
-        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

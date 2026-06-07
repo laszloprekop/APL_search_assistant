@@ -73,7 +73,7 @@ function App() {
               <Icon name="briefcase-search" className="text-brand" />
               APL Search Assistant
             </h1>
-            <p className="text-sm text-muted">Company pipeline · M1</p>
+            <p className="text-sm text-muted"></p>
           </div>
           <div className="flex gap-2">
             <button onClick={() => setGuideOpen(true)}
@@ -130,7 +130,7 @@ function App() {
         <div className="mb-3 flex flex-wrap items-center gap-3 text-sm">
           <span className="text-muted"><Icon name="filter-variant" /> Filter</span>
           <select value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}
-            className="rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60">
+            className="rounded-xl bg-input px-2 py-1 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60">
             <option value="">All stages</option>
             {STAGES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>

@@ -17,12 +17,13 @@
   --color-accent: #fed66e;         /* highlight fills, active states, "Ready" / ≥15 goal */
   --color-accent-strong: #face4e;  /* accent hover, accent borders, emphasis */
 
-  --color-page: #f9f5e7;           /* app background (warm cream) */
+  --color-page: #ffffff;           /* app background (clean white) */
   --color-surface: #ffffff;        /* cards, table, panels, drawer */
   --color-surface-hover: #f0f0f0;  /* row / control hover, subtle raised */
-  --color-border: #e0e0e0;         /* dividers, input borders */
+  --color-input: #fffae9;          /* input fills (warm cream, borderless) */
+  --color-border: #e0e0e0;         /* the few remaining dividers */
   --color-muted: #707070;          /* secondary text */
-  --color-faint: #9d9d9d;          /* placeholder / disabled / tertiary */
+  --color-faint: #757575;          /* tertiary text (kept readable: ~4.6:1 on white) */
 
   --color-success: #15803d;        /* green: ready / replied / enriched-ok (solid-fill safe w/ white) */
   --color-warning: #c2620a;        /* amber-orange (off the gold): guessed, unset, contacted */

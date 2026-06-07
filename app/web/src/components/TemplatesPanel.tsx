@@ -33,7 +33,7 @@ export function TemplatesPanel({ onClose }: { onClose: () => void }) {
   }, [sel, tpls]);
 
   const meta = KINDS.find((k) => k.kind === sel)!;
-  const field = "w-full rounded-xl bg-surface-hover px-3 py-1.5 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
+  const field = "w-full rounded-xl bg-input px-3 py-1.5 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   const save = async () => {
     const t = await api.updateTemplate(sel, { subject: meta.hasSubject ? subject : null, body });
@@ -48,7 +48,7 @@ export function TemplatesPanel({ onClose }: { onClose: () => void }) {
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="text-box-edit-outline" className="text-brand" /> Templates
         </h3>
-        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
 
       <div className="mb-3 flex flex-wrap gap-1.5">

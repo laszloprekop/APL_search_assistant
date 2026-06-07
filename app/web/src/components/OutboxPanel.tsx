@@ -31,7 +31,7 @@ export function OutboxPanel({ onClose }: { onClose: () => void }) {
           <Icon name="tray-full" className="text-brand" /> Outbox
           {items && <span className="text-sm font-normal text-faint">· {items.length}</span>}
         </h3>
-        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
 
       {items === null ? (
@@ -59,7 +59,7 @@ export function OutboxPanel({ onClose }: { onClose: () => void }) {
                   {o.subject && <div className="truncate text-xs text-muted">{o.subject}</div>}
                   {o.outcome && <div className="text-xs text-muted">↳ {o.outcome}</div>}
                 </div>
-                <button onClick={() => del(o.id)} className="shrink-0 text-faint hover:text-danger" title="Remove entry">
+                <button onClick={() => del(o.id)} className="shrink-0 opacity-40 hover:text-danger hover:opacity-100" title="Remove entry">
                   <Icon name="close" />
                 </button>
               </li>

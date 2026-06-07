@@ -24,7 +24,7 @@ export function AddCompanyForm({ onCreate, onClose }: { onCreate: (dto: CompanyC
     });
   };
 
-  const field = "w-full rounded-xl bg-surface-hover px-3 py-1.5 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60";
+  const field = "w-full rounded-xl bg-input px-3 py-1.5 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60";
 
   return (
     <form onSubmit={submit} className="rounded-2xl bg-surface p-4 shadow-sm">
@@ -32,7 +32,7 @@ export function AddCompanyForm({ onCreate, onClose }: { onCreate: (dto: CompanyC
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="domain-plus" className="text-brand" /> Add company
         </h3>
-        <button type="button" onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button type="button" onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="sm:col-span-2 text-xs text-muted">

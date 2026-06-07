@@ -56,11 +56,11 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="format-list-checks" className="text-brand" /> Lexicon list
-          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${enough ? "bg-success text-white" : "bg-warning text-white"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${enough ? "bg-accent text-brand" : "bg-warning text-white"}`}>
             {p.count} / {p.target} ready
           </span>
         </h3>
-        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
 
       {!enough && (
@@ -108,15 +108,15 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
 
           <div className="grid gap-2 sm:grid-cols-2">
             <label className="text-[11px] text-muted">To
-              <input value={to} onChange={(e) => setTo(e.target.value)} className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
+              <input value={to} onChange={(e) => setTo(e.target.value)} className="mt-0.5 w-full rounded-xl bg-input px-2 py-1 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60" />
             </label>
             <label className="text-[11px] text-muted">Subject
-              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1 text-sm text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
+              <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-0.5 w-full rounded-xl bg-input px-2 py-1 text-sm text-brand focus:outline-none focus:ring-2 focus:ring-accent/60" />
             </label>
           </div>
           <label className="mt-2 block text-[11px] text-muted">Cover email body
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={8}
-              className="mt-0.5 w-full rounded-xl bg-surface-hover px-2 py-1.5 font-mono text-xs leading-relaxed text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60" />
+              className="mt-0.5 w-full rounded-xl bg-input px-2 py-1.5 font-mono text-xs leading-relaxed text-brand focus:outline-none focus:ring-2 focus:ring-accent/60" />
           </label>
           <label className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted">
             <input type="checkbox" checked={includeTable} onChange={(e) => setIncludeTable(e.target.checked)} className="accent-brand" />
@@ -157,7 +157,7 @@ export function LexiconPanel({ onClose }: { onClose: () => void }) {
                 <Icon name="history" className="text-faint" />
                 {fmt(s.sentAt ?? s.createdAt)} · {s.companyCount} companies
                 <button onClick={async () => { if (confirm("Remove this submission record?")) { await api.deleteLexiconSubmission(s.id); loadSubs(); } }}
-                  className="text-faint hover:text-danger" title="Remove record"><Icon name="close" /></button>
+                  className="opacity-40 hover:text-danger hover:opacity-100" title="Remove record"><Icon name="close" /></button>
               </li>
             ))}
           </ul>

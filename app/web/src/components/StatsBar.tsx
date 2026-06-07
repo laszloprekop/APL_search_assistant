@@ -18,11 +18,11 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
           <span className="text-xs text-faint">(mail + phone)</span>
         </div>
         <div className="flex items-baseline gap-2 text-muted">
-          <Icon name="domain" className="text-faint" />
+          <Icon name="domain" className="opacity-50" />
           <span className="font-medium text-brand">{stats.total}</span> companies
         </div>
         {done && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-success px-2.5 py-0.5 text-sm font-medium text-white ring-1 ring-success">
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-sm font-semibold text-brand ring-1 ring-accent-strong">
             <Icon name="check-circle" /> Target met — generate the Lexicon list
           </span>
         )}
@@ -30,7 +30,7 @@ export function StatsBar({ stats }: { stats: Stats | null }) {
 
       <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-hover">
         <div
-          className={`h-full rounded-full transition-all ${done ? "bg-success" : "bg-brand"}`}
+          className={`h-full rounded-full transition-all ${done ? "bg-accent-strong" : "bg-accent"}`}
           style={{ width: `${pct}%` }}
         />
       </div>

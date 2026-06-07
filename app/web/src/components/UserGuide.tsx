@@ -32,7 +32,7 @@ export function UserGuide({ onClose }: { onClose: () => void }) {
             <Icon name="book-open-page-variant" className="text-brand" />
             User guide
           </h2>
-          <button onClick={close} title="Close (Esc)" className="text-faint hover:text-brand">
+          <button onClick={close} title="Close (Esc)" className="opacity-50 hover:opacity-100">
             <Icon name="close" className="text-xl" />
           </button>
         </header>
@@ -54,7 +54,7 @@ export function UserGuide({ onClose }: { onClose: () => void }) {
 
 function Intro() {
   return (
-    <div className="mb-5 rounded-2xl border border-accent-strong/40 bg-accent/15 p-4 text-sm text-muted">
+    <div className="mb-5 rounded-2xl border border-accent-strong/40 bg-accent/30 p-4 text-sm text-muted">
       <p className="flex items-center gap-1.5 font-semibold text-brand">
         <Icon name="briefcase-search" className="text-brand" /> What this app is for
       </p>
@@ -227,7 +227,7 @@ function QA({ q, children }: { q: string; children: ReactNode }) {
     <div className="rounded-xl bg-surface">
       <button onClick={() => setOpen((o) => !o)}
         className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm font-medium text-brand hover:bg-surface-hover">
-        <Icon name={open ? "chevron-down" : "chevron-right"} className="shrink-0 text-faint" />
+        <Icon name={open ? "chevron-down" : "chevron-right"} className="shrink-0 opacity-50" />
         {q}
       </button>
       {open && <p className="border-t border-border px-3 py-2 text-sm text-muted">{children}</p>}

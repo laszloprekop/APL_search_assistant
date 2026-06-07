@@ -43,7 +43,7 @@ export function ImportPanel({
         <h3 className="flex items-center gap-1.5 font-semibold text-brand">
           <Icon name="import" className="text-brand" /> Import LinkedIn capture
         </h3>
-        <button onClick={onClose} className="text-faint hover:text-brand"><Icon name="close" /></button>
+        <button onClick={onClose} className="opacity-50 hover:opacity-100"><Icon name="close" /></button>
       </div>
       <p className="mb-2 text-xs text-muted">
         Paste the <strong>Copy JSON</strong> output from the APL Capture browser extension.
@@ -53,7 +53,7 @@ export function ImportPanel({
         onChange={(e) => setText(e.target.value)}
         rows={6}
         placeholder='[{"name":"…","company":"…","handle":"…", …}]'
-        className="w-full rounded-xl bg-surface-hover p-2 font-sans text-xs text-brand focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/60"
+        className="w-full rounded-xl bg-input p-2 font-sans text-xs text-brand focus:outline-none focus:ring-2 focus:ring-accent/60"
       />
       {error && <p className="mt-2 text-xs text-danger"><Icon name="alert-circle" /> {error}</p>}
       {result && (
