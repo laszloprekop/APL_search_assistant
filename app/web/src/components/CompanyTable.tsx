@@ -306,14 +306,13 @@ function ExpandedRow({
               {c.persons.map((p) => (
                 <li key={p.id} className="text-sm">
                   <div className="flex items-start gap-1.5">
-                    <Icon name="linkedin" className="mt-0.5 shrink-0 text-linkedin" title="LinkedIn contact" />
                     <div className="min-w-0">
                       <div className="font-medium text-brand">{p.name}</div>
                       {p.title && <div className="truncate text-xs text-faint">{p.title}</div>}
                     </div>
                     <button onClick={() => p.id && findPerson(p.id)} disabled={pBusy === p.id || !c.website}
                       title={c.website ? "Look up this person's email/phone on the company website" : "Find the company website first (step 1)"}
-                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg bg-surface-hover px-1.5 py-0.5 text-[11px] font-medium text-brand hover:bg-border disabled:opacity-40">
+                      className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-1.5 py-0.5 text-[11px] font-medium text-brand hover:bg-accent-strong disabled:opacity-40">
                       <Icon name="account-search" /> {pBusy === p.id ? "…" : "Find contact"}
                     </button>
                   </div>
