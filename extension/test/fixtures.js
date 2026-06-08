@@ -162,4 +162,49 @@ const UPSELL = `
     <a href="https://www.linkedin.com/premium/products/?x">Retry Premium for SEK 0</a>
   </div>`;
 
-module.exports = { CARDS, UPSELL };
+// A directly-visited /in/ profile's top card — anonymized but structurally faithful to a
+// real logged-in profile (the local, gitignored profile-sample.html). The redesigned DOM has
+// fully hashed classes and NO <h1>: the name is the single <h2> matching the page <title>.
+// Order: name <h2> · pronouns · "· 1st" degree · headline · current-company row · location ·
+// "Contact info". A trailing "About" heading + Experience section bound the top card and let
+// the same fixture exercise parseProfileExperience.
+const PROFILE = {
+  url: "https://www.linkedin.com/in/annabergstrom/",
+  title: "(3) Anna Bergström | LinkedIn", // notification-count prefix must be stripped
+  html: `
+    <main>
+      <section>
+        <a href="https://www.linkedin.com/in/annabergstrom/"><div class="_88ea701d" aria-label="Anna Bergström"><figure></figure></div></a>
+        <h2 class="_2eb95346 _24acea71 c351b56f">Anna Bergström</h2>
+        <svg role="img" aria-label="View Anna’s verifications"></svg>
+        <p class="_2eb95346 _1f780de2 c351b56f">She/Her</p>
+        <div class="bde34a6e"><p class="_2eb95346 _1f780de2 c351b56f">· 1st</p></div>
+        <p class="_2eb95346 _09b65e6e c351b56f">Lead Engineer &amp; Team Manager at Northwind Tech</p>
+        <p class="_2eb95346 _1f780de2 fa602647 c351b56f">Northwind Tech · Some Other AB</p>
+        <div class="e7886ddf">
+          <p class="_2eb95346 _1f780de2 _354585b3 c351b56f">Kalmar County, Sweden</p>
+          <p class="_2eb95346 _704502a2 c351b56f">·</p>
+          <p class="_2eb95346 _34f4f05e c351b56f"><a href="#">Contact info</a></p>
+        </div>
+      </section>
+      <h2>About</h2>
+      <p>A section paragraph that must NOT be read as the headline or location.</p>
+      <h2 componentkey="ProfileNullStateCardAnchor_Experience">Experience</h2>
+      <div componentkey="entity-collection-item-1">
+        <a href="https://www.linkedin.com/company/northwindtech/">
+          <figure><img alt="Northwind Tech logo"></figure></a>
+        <a href="https://www.linkedin.com/company/northwindtech/">
+          <div><p>Lead Engineer</p><p>Northwind Tech · Full-time</p></div></a>
+      </div>
+    </main>`,
+  expect: {
+    name: "Anna Bergström",
+    title: "Lead Engineer & Team Manager at Northwind Tech",
+    location: "Kalmar County, Sweden",
+    lan: "Kalmar",
+    linkedin_url: "https://www.linkedin.com/in/annabergstrom/",
+    handle: "annabergstrom",
+  },
+};
+
+module.exports = { CARDS, UPSELL, PROFILE };

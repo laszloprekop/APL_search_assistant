@@ -316,6 +316,74 @@
     return null;
   }
 
+  // ---- PERSON PROFILE PAGE (top-card header) parsing ------------------------
+  // Reads the directly-visited /in/ profile's header: name + headline (title) + location.
+  // The company link still comes from parseProfileExperience; this adds the person fields
+  // that, on a search capture, came from the result card (parseCard) instead.
+  //
+  // DOM facts (verified against a real logged-in profile, June 2026): classes are fully
+  // hashed and there is NO <h1> — the name is the single <h2> that matches the page <title>.
+  // Top-card order is: name <h2> · pronouns <p> · "· 1st/2nd" degree <p> · headline <p> ·
+  // current-company row <p> · location <p> · "Contact info". So anchor on the name heading
+  // and classify the <p> lines that follow it, bounded by the next section heading.
+
+  // The profile URL: the running tab (browser) → a <link rel=canonical> → the jsdom window.
+  function pageUrl(d) {
+    if (typeof location !== "undefined" && location.href) return location.href;
+    const c = d.querySelector('link[rel="canonical"]');
+    if (c && c.getAttribute("href")) return c.getAttribute("href");
+    try { if (d.defaultView && d.defaultView.location) return d.defaultView.location.href; } catch { /* ignore */ }
+    return "";
+  }
+
+  // "Magnus Ferm | LinkedIn" / "(3) Magnus Ferm | LinkedIn" -> "Magnus Ferm".
+  function nameFromTitle(d) {
+    const raw = clean(d.title || "");
+    if (!raw) return "";
+    return clean(raw.replace(/^\(\d+\+?\)\s*/, "").split("|")[0]);
+  }
+
+  function parseProfile(doc) {
+    const d = doc || (typeof document !== "undefined" ? document : null);
+    if (!d) return null;
+
+    const linkedin_url = cleanProfileUrl(pageUrl(d));
+    const handle = linkedin_url ? handleFromUrl(linkedin_url) : "";
+
+    // Name: trust the <title>, then anchor on the heading carrying it (so we don't grab a
+    // section heading like "About"/"Experience"). Fall back to the first heading's text.
+    const headings = [...d.querySelectorAll("h1, h2, h3")];
+    const wantName = nameFromTitle(d);
+    let nameHeading = wantName ? headings.find((h) => clean(h.textContent) === wantName) || null : null;
+    const name = wantName || (nameHeading ? clean(nameHeading.textContent) : (headings[0] ? clean(headings[0].textContent) : ""));
+    if (!name) return null;
+    if (!nameHeading) nameHeading = headings.find((h) => clean(h.textContent) === name) || null;
+
+    // Walk the <p> lines after the name heading, stopping at the next heading (top-card
+    // boundary). Skip pronouns ("He/Him") and connection degree ("· 1st"); the first line
+    // left is the headline (title); the line matching locRe is the location.
+    let title = "", location = "";
+    if (nameHeading) {
+      const after = headings.filter((h) => nameHeading.compareDocumentPosition(h) & 4 /* FOLLOWING */);
+      const nextHeading = after[0] || null;
+      const inCard = (p) =>
+        (nameHeading.compareDocumentPosition(p) & 4) &&
+        (!nextHeading || (p.compareDocumentPosition(nextHeading) & 4));
+      const locRe = /(Sweden|Sverige|County|Region|Metropolitan|Area|län|kommun)/i;
+      const isPronoun = (s) => /^(he|she|they|hen|ze)\s*\/\s*(him|her|them|hen|zir)$/i.test(s);
+      const isDegree = (s) => /^[·•\s]*(1st|2nd|3rd)$/i.test(s);
+      for (const p of d.querySelectorAll("p")) {
+        if (!inCard(p)) continue;
+        const s = clean(p.textContent);
+        if (!s || s === "·" || isPronoun(s) || isDegree(s)) continue;
+        if (!location && locRe.test(s) && s.length < 70) { location = s; if (title) break; continue; }
+        if (!title) { title = s; if (location) break; continue; }
+      }
+    }
+
+    return { name, title, location, lan: lanFromLocation(location), linkedin_url, handle };
+  }
+
   function companyLinkedInUrl(doc) {
     const href = (typeof location !== "undefined" && location.href) ||
       doc.querySelector('link[rel="canonical"]')?.getAttribute("href") || "";
@@ -407,7 +475,7 @@
     clean, sanitizeName, cleanProfileUrl, handleFromUrl, lanFromLocation, parseAllabolag,
     parseCompany, parseCard, scanDocument,
     unwrapRedirect, extractWebsite, parseCompanyPage, organizationFromJsonLd,
-    parseProfileExperience,
+    parseProfileExperience, parseProfile,
   };
 
   if (typeof module !== "undefined" && module.exports) module.exports = API;

@@ -3,7 +3,7 @@ const { test } = require("node:test");
 const assert = require("node:assert/strict");
 const { JSDOM } = require("jsdom");
 const P = require("../parser.js");
-const { CARDS, UPSELL } = require("./fixtures.js");
+const { CARDS, UPSELL, PROFILE } = require("./fixtures.js");
 
 function parse(html) {
   const dom = new JSDOM(`<!DOCTYPE html><body><div role="list">${html}</div></body>`);
@@ -258,6 +258,70 @@ test("parseProfileExperience falls back to a slug company id and link text for t
 
 test("parseProfileExperience returns null when there is no company in Experience", () => {
   assert.equal(parseProfile(`<h2>Experience</h2><p>Self-employed</p>`), null);
+});
+
+// --- PERSON PROFILE top-card header (parseProfile) --------------------------
+// Anchored on a full document so doc.title + the jsdom window URL resolve. The new DOM has
+// hashed classes and no <h1>; the name is the <h2> matching the title.
+function parseHeader(title, body, url = "https://www.linkedin.com/in/x/") {
+  const dom = new JSDOM(
+    `<!DOCTYPE html><html><head><title>${title}</title></head><body>${body}</body></html>`,
+    { url }
+  );
+  return P.parseProfile(dom.window.document);
+}
+
+test("parseProfile reads name (title-anchored), headline, location, lan, handle", () => {
+  const dom = new JSDOM(
+    `<!DOCTYPE html><html><head><title>${PROFILE.title}</title></head><body>${PROFILE.html}</body></html>`,
+    { url: PROFILE.url }
+  );
+  const r = P.parseProfile(dom.window.document);
+  for (const [k, want] of Object.entries(PROFILE.expect)) {
+    assert.equal(r[k], want, `${k} (got: ${JSON.stringify(r[k])})`);
+  }
+});
+
+test("parseProfile strips a (N) notification prefix and the | LinkedIn suffix", () => {
+  const r = parseHeader("(99+) Jane Doe | LinkedIn", `<h2>Jane Doe</h2><p>Builder at Acme</p>`);
+  assert.equal(r.name, "Jane Doe");
+});
+
+test("parseProfile picks the name <h2>, not a later section heading", () => {
+  const r = parseHeader(
+    "Jane Doe | LinkedIn",
+    `<h2>Jane Doe</h2><p>Builder at Acme</p><h2>About</h2><p>not a headline</p>`
+  );
+  assert.equal(r.name, "Jane Doe");
+  assert.equal(r.title, "Builder at Acme"); // bounded by the "About" heading
+});
+
+test("parseProfile skips pronouns and connection degree before the headline", () => {
+  const r = parseHeader(
+    "Jane Doe | LinkedIn",
+    `<h2>Jane Doe</h2><p>They/Them</p><p>· 2nd</p><p>Staff Engineer at Globex</p><p>Stockholm, Sweden</p>`
+  );
+  assert.equal(r.title, "Staff Engineer at Globex");
+  assert.equal(r.location, "Stockholm, Sweden");
+  assert.equal(r.lan, "Stockholm");
+});
+
+test("parseProfile derives handle from the page URL", () => {
+  const r = parseHeader("Jane Doe | LinkedIn", `<h2>Jane Doe</h2>`, "https://www.linkedin.com/in/jane-doe-99/?foo=1");
+  assert.equal(r.linkedin_url, "https://www.linkedin.com/in/jane-doe-99/");
+  assert.equal(r.handle, "jane-doe-99");
+});
+
+test("parseProfile returns null on a page with no name (no title, no headings)", () => {
+  assert.equal(parseHeader("", `<p>nothing here</p>`), null);
+});
+
+// The same profile fixture still resolves the canonical company link via parseProfileExperience.
+test("parseProfileExperience resolves the company link on the PROFILE fixture", () => {
+  const dom = new JSDOM(`<!DOCTYPE html><body>${PROFILE.html}</body>`);
+  const r = P.parseProfileExperience(dom.window.document);
+  assert.equal(r.companyId, "northwindtech");
+  assert.equal(r.linkedinUrl, "https://www.linkedin.com/company/northwindtech/");
 });
 
 // Real logged-in LinkedIn company About markup (captured from the live page, June 2026):
