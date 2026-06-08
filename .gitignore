@@ -1,6 +1,10 @@
 # Private source material — third-party personal data + Lexicon's internal deck. Local only.
 Material/
 
+# Saved LinkedIn page DOM fixtures — contain real personal data. Local only.
+extension/test/profile-sample.html
+extension/test/*-sample.html
+
 # Personal pre-filled deliverables (real name/email/phone). Local only.
 Deliverable.local/
 
