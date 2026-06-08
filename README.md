@@ -17,6 +17,11 @@ LTU **APL (internship) search** — discovery, enrichment, personalized outreach
 
 > Built for the Lexicon LTU VT-2026 APL search, and as a portfolio piece in the course stack
 > (ASP.NET Core + EF Core/SQLite + React + a Chrome MV3 extension).
+>
+> This is a **developer-guided LLM collaboration project** — designed, corrected, and steered by a
+> human at every step, and built with Claude Code. For the story of *how* it was built — the
+> origin chat, the prompts that turned the project, the skills used, and the risks spotted along
+> the way — see [**Docs/LLM-COLLABORATION.md**](Docs/LLM-COLLABORATION.md).
 
 ![The company pipeline — enrichment, grouped contact points, and per-company outreach](Docs/APL_assist_app.png)
 
