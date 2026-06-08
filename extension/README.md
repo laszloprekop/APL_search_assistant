@@ -5,9 +5,10 @@ currently viewing** into a CSV/JSON, to seed your APL contact list. Implements t
 "assisted capture" path of the PRD (§6.1).
 
 ## ⚠️ Scope & ToS boundary — read this
-- **Manual trigger only.** You click **Capture**; the extension reads what's already
-  rendered on your screen. It does **not** auto-scroll, auto-paginate, log in, or fetch in
-  the background. It is not a crawler.
+- **You drive; it reads only what you open.** On people-search and company pages you click
+  **Capture**; on a profile you open directly it **auto-reads that one rendered page**. Either
+  way it **never** auto-scrolls, auto-paginates, opens tabs, logs in, or fetches in the
+  background — and every page navigation and every send stays behind a click. It is not a crawler.
 - **Personal use.** This is for your own internship hunt. Don't bulk-collect or redistribute
   other people's data. LinkedIn's User Agreement discourages automated collection — keep
   usage low-volume and human-paced, exactly as the Lexicon deck instructs you to do by hand.
@@ -56,6 +57,22 @@ the enriched list until you **Send**.
   fills each company's website.
 
 Full design + rationale (incl. why background fetching is off the table): `Docs/enrichment-wizard.md`.
+
+## Capture a profile you visit directly
+Land on a `linkedin.com/in/<person>` page you reached **outside** a search list (a referral,
+a Google hit) and an **APL · Capture profile** panel appears (bottom-right). It **auto-reads**
+that rendered profile — name, headline, location, and the canonical company link from the
+Experience section — and shows the captured package.
+
+- **Open *Company* ↗** walks the single website step (profile → that company's About → website),
+  the same one-click, reads-only-what-you-open mechanism as the bulk wizard. **Send without
+  website** skips it.
+- No company on the profile (freelancer / no LinkedIn company page)? It still captures the
+  person; **Send to app** files them (the app's **Find website** can fill the company later).
+- **Send to app** → `POST /api/companies/import` with that single row. The app dedupes by
+  profile handle, so re-capturing the same person is safe.
+
+Reuses the enrichment wizard's engine; full design in `Docs/profile-capture.md`.
 
 ## Output (CSV schema)
 Columns match `Deliverable/lexicon_list.csv` so captures append straight into your ≥15 list.

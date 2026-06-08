@@ -141,8 +141,78 @@
     }
   }
 
+  // ---------------------------------------------- single-profile capture -----
+  // Entry point for a DIRECTLY-visited /in/ profile (no enrich wizard running). Auto-reads
+  // the header (parseProfile) + company link (parseProfileExperience), shows the captured
+  // package, then reuses the SAME walk engine for the one company hop. State is persisted
+  // (mode:"single") only when the walk/send starts. Docs/profile-capture.md.
+  async function captureSingleItem() {
+    busy("Reading profile…");
+    await waitFor(() => { const p = P.parseProfile(document); return !!(p && p.name); });
+    const prof = P.parseProfile(document) || {};
+    const exp = P.parseProfileExperience(document);
+    return {
+      name: prof.name || "", title: prof.title || "", location: prof.location || "",
+      lan: prof.lan || "", handle: prof.handle || "",
+      linkedin_url: prof.linkedin_url || location.href.split("?")[0],
+      company: exp && exp.name ? exp.name : "",
+      company_id: exp ? exp.companyId : null,
+      company_linkedin_url: exp ? exp.linkedinUrl : null,
+      website: null, website_source: null,
+      captured_at: new Date().toISOString(),
+    };
+  }
+
+  async function startSingleWalk(item) {
+    if (!confirm(`Open ${item.company || "the company"}'s About page to read its website?\n\nOne click opens that one page; the extension reads only what you open.`)) return;
+    await setState({ active: true, mode: "single", queue: [item], i: 0, stage: "company", resolved: {}, done: false });
+    go(aboutUrl(item.company_id)); // one click = one navigation; the wizard resumes there
+  }
+
+  async function sendSingleNow(item, btn) {
+    // Persist a done single-item run and reuse the shared sender (POST + dedupe + clear).
+    await setState({ active: true, mode: "single", queue: [item], i: 0, stage: "company", resolved: {}, done: true });
+    await send(btn);
+  }
+
+  function renderSinglePreview(item) {
+    if (!item.name) {
+      stepEl.textContent = "Couldn’t read this profile (it may be private or still loading).";
+      actEl.innerHTML = `<button class="primary" id="retry">Retry</button>`;
+      sh.getElementById("retry").onclick = async () => renderSinglePreview(await captureSingleItem());
+      return;
+    }
+    setHeader("APL · Capture profile");
+    setBar(0, 1);
+    const kv = (k, v, none) =>
+      `<div class="r"><span class="nm" title="${esc(k)}">${esc(k)}</span>` +
+      `<span class="web${v ? "" : " none"}">${v ? esc(v) : (none || "—")}</span></div>`;
+    resultsEl.innerHTML = [
+      kv("Name", item.name),
+      kv("Title", item.title, "no headline"),
+      kv("Location", item.location, "—"),
+      kv("Company", item.company, "none found on profile"),
+    ].join("");
+    if (item.company_id) {
+      stepEl.textContent = `Captured — walk to the website, or send now.`;
+      actEl.innerHTML = `<button class="primary" id="walk">Open ${esc(item.company || "company")} ↗</button><button class="ghost" id="sendnow">Send without website</button>`;
+      sh.getElementById("walk").onclick = () => startSingleWalk(item);
+    } else {
+      stepEl.textContent = `Captured — no company on this profile. Send the person?`;
+      actEl.innerHTML = `<button class="send" id="sendnow">Send to app</button>`;
+    }
+    sh.getElementById("sendnow").onclick = (e) => sendSingleNow(item, e.target);
+  }
+
+  async function initSingle() {
+    buildPanel();
+    setHeader("APL · Capture profile");
+    renderSinglePreview(await captureSingleItem());
+  }
+
   // -------------------------------------------------------------------- UI ---
-  let host, sh, barEl, stepEl, actEl, statusEl, resultsEl;
+  let host, sh, titleEl, barEl, stepEl, actEl, statusEl, resultsEl;
+  function setHeader(t) { if (titleEl) titleEl.textContent = t; }
   const esc = (s) => (s || "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   function flash(btn, msg) { const o = btn.dataset.l || btn.textContent; btn.dataset.l = o; btn.textContent = msg; setTimeout(() => (btn.textContent = btn.dataset.l), 1400); }
   function status(msg, kind) { if (statusEl) { statusEl.textContent = msg || ""; statusEl.dataset.kind = kind || ""; } }
@@ -201,8 +271,16 @@
     const missing = s.queue.length - found;
     setBar(s.queue.length, s.queue.length);
     renderResults(s);
-    stepEl.textContent = `Done — ${found} website${found === 1 ? "" : "s"} found, ${missing} for the app’s Find website.`;
-    actEl.innerHTML = `<button class="send" id="send">Send enriched list to app</button><button class="ghost" id="discard">Discard</button>`;
+    if (s.mode === "single") {
+      const q = s.queue[0] || {};
+      stepEl.textContent = q.website
+        ? `Got ${q.website.replace(/^https?:\/\//, "")} — send this profile?`
+        : `No company website found — send this profile anyway?`;
+      actEl.innerHTML = `<button class="send" id="send">Send to app</button><button class="ghost" id="discard">Discard</button>`;
+    } else {
+      stepEl.textContent = `Done — ${found} website${found === 1 ? "" : "s"} found, ${missing} for the app’s Find website.`;
+      actEl.innerHTML = `<button class="send" id="send">Send enriched list to app</button><button class="ghost" id="discard">Discard</button>`;
+    }
     sh.getElementById("send").onclick = (e) => send(e.target);
     sh.getElementById("discard").onclick = () => cancel();
   }
@@ -251,7 +329,7 @@
         .act button { flex:1; }
       </style>
       <div class="p">
-        <div class="h"><b>APL · Enrich websites</b><button class="x" id="x" title="Cancel">✕</button></div>
+        <div class="h"><b id="title">APL · Enrich websites</b><button class="x" id="x" title="Cancel">✕</button></div>
         <div class="b">
           <div class="bar"><div class="fill"></div><div class="lbl">0/0</div></div>
           <div class="step" id="step">Loading…</div>
@@ -262,6 +340,7 @@
         </div>
       </div>`;
     document.documentElement.appendChild(host);
+    titleEl = sh.getElementById("title");
     barEl = sh.querySelector(".bar");
     stepEl = sh.getElementById("step");
     actEl = sh.getElementById("act");
@@ -273,8 +352,14 @@
   // --------------------------------------------------------------- bootstrap -
   (async function init() {
     const s = await getState();
-    if (!s || !s.active) return; // wizard not running -> stay invisible
-    buildPanel();
-    await processPage(s);
+    if (s && s.active) { // an enrich/single walk is in progress -> drive it
+      buildPanel();
+      if (s.mode === "single") setHeader("APL · Capture profile");
+      await processPage(s);
+      return;
+    }
+    // No walk running. On a directly-visited profile, offer single-profile capture
+    // (auto-read on arrival, then a one-click walk to the website). Docs/profile-capture.md.
+    if (onProfile()) await initSingle();
   })();
 })();

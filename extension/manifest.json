@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "APL Search Assistant — LinkedIn Capture",
-  "version": "0.11.0",
-  "description": "User-initiated capture of LinkedIn people-search results + a guided, click-only website-enrichment wizard (profile → company About), plus allabolag.se company-data capture (org.nr / financials / switchboard phone) sent to the local APL Assistant app. Personal use; manual trigger only; no auto-crawling.",
+  "version": "0.12.0",
+  "description": "User-initiated capture of LinkedIn people-search results, single profiles you open directly, and company pages, plus a guided click-only website-enrichment wizard (profile → company About) and allabolag.se company-data capture (org.nr / financials / switchboard phone), sent to the local APL Assistant app. Personal use; it auto-reads only the page you navigate to and keeps every navigation and send behind a click; no auto-crawling.",
   "permissions": ["storage"],
   "host_permissions": ["http://localhost:5099/*"],
   "icons": {
